@@ -1,6 +1,6 @@
 name: Run NanoCog Tests and Server
 
-on:
+"on":
   push:
     branches: [ main, master ]
     branches-ignore: 
