@@ -1,0 +1,216 @@
+name: CogPrime Unified Build Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CCACHE_DIR: /workspace/ccache
+  CMAKE_BUILD_TYPE: Release
+  MAKEFLAGS: -j4  # GitHub Actions allows more parallelism
+
+jobs:
+  foundation-layer:
+    name: Build Foundation Components
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.repository_owner }}/opencog-deps:latest
+    outputs:
+      cache-key: ${{ steps.cache.outputs.key }}
+    steps:
+      - id: cache
+        run: echo "key=ccache-$(date +%Y-%W)" >> $GITHUB_OUTPUT
+      
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.cache.outputs.key }}
+      
+      - name: Build CogUtil
+        run: |
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/cogutil
+          cd cogutil && mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} ..
+          make ${{ env.MAKEFLAGS }}
+          make test
+          make install
+          ldconfig
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: foundation-artifacts
+          path: /usr/local
+
+  core-layer:
+    name: Build Core Components
+    needs: foundation-layer
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.repository_owner }}/opencog-deps:latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: test
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: foundation-artifacts
+          path: /usr/local
+      
+      - run: ldconfig
+      
+      - name: Build AtomSpace
+        env:
+          PGHOST: postgres
+        run: |
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/atomspace
+          cd atomspace && mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} ..
+          make ${{ env.MAKEFLAGS }}
+          make test
+          make install
+          ldconfig
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: core-artifacts
+          path: /usr/local
+
+  infrastructure-layer:
+    name: Build Infrastructure - ${{ matrix.component }}
+    needs: core-layer
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.repository_owner }}/opencog-deps:latest
+    strategy:
+      matrix:
+        include:
+          - component: atomspace-rocks
+          - component: cogserver
+          - component: spacetime
+          - component: unify
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: core-artifacts
+          path: /usr/local
+      
+      - run: ldconfig
+      
+      - name: Build ${{ matrix.component }}
+        run: |
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/${{ matrix.component }}
+          cd ${{ matrix.component }} && mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} ..
+          make ${{ env.MAKEFLAGS }}
+          make test || true
+          make install
+          ldconfig
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.component }}-artifacts
+          path: /usr/local
+
+  reasoning-layer:
+    name: Build Reasoning Engine
+    needs: infrastructure-layer
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.repository_owner }}/opencog-deps:latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: /artifacts
+      
+      - name: Merge artifacts
+        run: |
+          for artifact in /artifacts/*; do
+            cp -r $artifact/* /usr/local/ || true
+          done
+          ldconfig
+      
+      - name: Build URE
+        run: |
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/ure
+          cd ure && mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} ..
+          make ${{ env.MAKEFLAGS }}
+          make test
+          make install
+          ldconfig
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: reasoning-artifacts
+          path: /usr/local
+
+  application-layer:
+    name: Build Applications - ${{ matrix.component }}
+    needs: reasoning-layer
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.repository_owner }}/opencog-deps:latest
+    strategy:
+      matrix:
+        include:
+          - component: attention
+          - component: as-moses
+            repo: asmoses
+          - component: miner
+          - component: pln
+          - component: lg-atomese
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: reasoning-artifacts
+          path: /usr/local
+      
+      - run: ldconfig
+      
+      - name: Build ${{ matrix.component }}
+        run: |
+          REPO=${{ matrix.repo || matrix.component }}
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/$REPO component
+          cd component && mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} ..
+          make ${{ env.MAKEFLAGS }}
+          make test || true
+          make install
+
+  final-integration:
+    name: CogPrime Integration & Packaging
+    needs: application-layer
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.repository_owner }}/opencog-deps:latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/download-artifact@v3
+        with:
+          path: /artifacts
+      
+      - name: Integrate all components
+        run: |
+          for artifact in /artifacts/*; do
+            cp -r $artifact/* /usr/local/ || true
+          done
+          ldconfig
+      
+      - name: Build CogPrime meta-package
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ env.CMAKE_BUILD_TYPE }} ..
+          make ${{ env.MAKEFLAGS }}
+          make test
+          make package
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cogprime-distribution
+          path: build/*.deb
