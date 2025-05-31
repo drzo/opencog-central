@@ -103,6 +103,14 @@ In diagnostic mode:
 class ModelConfig:
     """Configuration for the nanoGPT model."""
     def __init__(self, model_path: str, device: str = "cuda", max_tokens: int = 2048):
+        """
+        Initializes the ModelConfig with model path, device, and maximum token settings.
+        
+        Args:
+            model_path: Path to the nanoGPT model checkpoint.
+            device: Device identifier for model inference (e.g., "cuda" or "cpu").
+            max_tokens: Maximum number of tokens for model input and generation.
+        """
         self.model_path = model_path
         self.device = device
         self.max_tokens = max_tokens
@@ -111,7 +119,15 @@ class ModelConfig:
         self.model_info = {}
 
     def load_model(self):
-        """Load the nanoGPT model from checkpoint."""
+        """
+        Loads the nanoGPT model checkpoint, initializes the model and tokenizer, and prepares the model for inference.
+        
+        Returns:
+            True if the model is loaded successfully.
+        
+        Raises:
+            RuntimeError: If loading the model or tokenizer fails.
+        """
         try:
             print(f"Loading model from {self.model_path}...")
             checkpoint = torch.load(self.model_path, map_location=self.device)
@@ -153,18 +169,21 @@ class ModelConfig:
                  temperature: float = 0.7, top_k: int = 200,
                  callback = None):
         """
-        Generate text from the model.
-        
-        Args:
-            prompt: The input prompt
-            max_new_tokens: Maximum number of tokens to generate
-            temperature: Sampling temperature (higher = more random)
-            top_k: Only sample from the top k most likely tokens
-            callback: Optional callback function for streaming tokens
-            
-        Returns:
-            Generated text
-        """
+                 Generates text from the model based on the provided prompt.
+                 
+                 Args:
+                     prompt: The input text to condition the model's generation.
+                     max_new_tokens: Maximum number of tokens to generate in the response.
+                     temperature: Controls randomness in sampling; higher values yield more diverse outputs.
+                     top_k: Limits sampling to the top k most probable tokens at each step.
+                     callback: Optional function to receive tokens as they are generated for streaming output.
+                 
+                 Returns:
+                     The generated text as a string, or streams tokens via the callback if provided.
+                 
+                 Raises:
+                     RuntimeError: If the model or tokenizer is not loaded.
+                 """
         if not self.model or not self.tokenizer:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
@@ -185,7 +204,18 @@ class ModelConfig:
             return self._batch_generate(x, max_new_tokens, temperature, top_k)
     
     def _batch_generate(self, x, max_new_tokens, temperature, top_k):
-        """Generate text in a single batch."""
+        """
+        Generates text from the model in a single batch and returns the decoded output.
+        
+        Args:
+            x: Input tensor containing tokenized prompt.
+            max_new_tokens: Maximum number of tokens to generate.
+            temperature: Sampling temperature for generation.
+            top_k: Limits sampling to the top_k most probable tokens.
+        
+        Returns:
+            The generated text as a string, excluding the original prompt.
+        """
         with torch.no_grad():
             with torch.amp.autocast(device_type='cuda' if 'cuda' in self.device else 'cpu'):
                 y = self.model.generate(
@@ -199,7 +229,19 @@ class ModelConfig:
                 return generated_text
     
     def _stream_generate(self, x, max_new_tokens, temperature, top_k, callback):
-        """Generate text token by token, calling the callback for each token."""
+        """
+        Generates text one token at a time, invoking a callback with each new token.
+        
+        Args:
+            x: Input tensor containing tokenized prompt.
+            max_new_tokens: Maximum number of tokens to generate.
+            temperature: Sampling temperature for controlling randomness.
+            top_k: Limits sampling to the top_k most probable tokens.
+            callback: Function called with each generated token; if it returns False, generation stops early.
+        
+        Returns:
+            The concatenated string of all generated tokens.
+        """
         generated_tokens = []
         
         with torch.no_grad():
@@ -266,21 +308,23 @@ class ConversationHistory:
     
     def __init__(self, max_history: int = DEFAULT_HISTORY_SIZE):
         """
-        Initialize conversation history.
+        Initializes a new conversation history manager.
         
         Args:
-            max_history: Maximum number of messages to keep in history
+            max_history: The maximum number of messages to retain in the conversation history.
         """
         self.messages = []
         self.max_history = max_history
     
     def add_message(self, role: str, content: str):
         """
-        Add a message to the history.
+        Appends a message with role and content to the conversation history.
+        
+        If the total number of messages exceeds the maximum history size, the oldest messages are removed to maintain the limit.
         
         Args:
-            role: The role of the message sender (user, assistant, system)
-            content: The content of the message
+            role: The sender's role, such as "user", "assistant", or "system".
+            content: The message text to add.
         """
         self.messages.append({
             "role": role,
@@ -293,15 +337,24 @@ class ConversationHistory:
             self.messages = self.messages[-self.max_history:]
     
     def clear(self):
-        """Clear the conversation history."""
+        """
+        Removes all messages from the conversation history.
+        """
         self.messages = []
     
     def get_messages(self):
-        """Get all messages in the history."""
+        """
+        Returns all messages currently stored in the conversation history.
+        """
         return self.messages
     
     def format_for_prompt(self):
-        """Format the conversation history for use in a prompt."""
+        """
+        Formats the conversation history into a prompt string suitable for model input.
+        
+        Returns:
+            A string containing all messages with role-based prefixes, ending with an assistant prompt to elicit a response from the model.
+        """
         prompt = ""
         for message in self.messages:
             role = message["role"].lower()
@@ -321,13 +374,13 @@ class ConversationHistory:
     
     def save_to_file(self, filename: str):
         """
-        Save the conversation history to a file.
+        Saves the conversation history to a JSON file with version and timestamp metadata.
         
         Args:
-            filename: The name of the file to save to
+            filename: Path to the file where the conversation history will be saved.
         
         Returns:
-            True if successful, False otherwise
+            True if the conversation history was saved successfully, False otherwise.
         """
         try:
             with open(filename, 'w', encoding='utf-8') as f:
@@ -343,13 +396,13 @@ class ConversationHistory:
     
     def load_from_file(self, filename: str):
         """
-        Load conversation history from a file.
+        Loads conversation history from a JSON file.
         
         Args:
-            filename: The name of the file to load from
+            filename: Path to the JSON file containing conversation history.
         
         Returns:
-            True if successful, False otherwise
+            True if the conversation history was loaded successfully; False otherwise.
         """
         try:
             with open(filename, 'r', encoding='utf-8') as f:
@@ -369,20 +422,22 @@ class DiagnosticMode:
     """Handles diagnostic mode functionality."""
     
     def __init__(self):
-        """Initialize diagnostic mode."""
+        """
+        Initializes the DiagnosticMode instance with default focus areas and disconnected state.
+        """
         self.atomspace_endpoint = None
         self.focus_areas = ["attention", "goals", "patterns", "cognitive synergy"]
         self.connected = False
     
     def connect(self, endpoint: str) -> bool:
         """
-        Connect to an AtomSpace endpoint.
+        Attempts to establish a connection to the specified AtomSpace REST API endpoint.
         
         Args:
-            endpoint: The URL of the AtomSpace REST API
-            
+            endpoint: The URL of the AtomSpace REST API.
+        
         Returns:
-            True if connection successful, False otherwise
+            True if the connection is successful; False otherwise.
         """
         try:
             import requests
@@ -398,10 +453,12 @@ class DiagnosticMode:
     
     def get_introspection_data(self) -> Dict[str, Any]:
         """
-        Get introspection data from the AtomSpace.
+        Retrieves mock introspection data simulating the current state of the AtomSpace.
         
         Returns:
-            Dictionary of introspection data, or empty dict if not connected
+            A dictionary containing simulated AtomSpace metrics such as atom count, active goals,
+            attention summary, high STI atoms, and performance statistics. Returns an empty
+            dictionary if not connected or if an error occurs.
         """
         if not self.connected or not self.atomspace_endpoint:
             return {}
@@ -469,13 +526,13 @@ class DiagnosticMode:
     
     def format_diagnostic_prompt(self, introspection_data: Dict[str, Any]) -> str:
         """
-        Format introspection data into a prompt for diagnostic analysis.
+        Formats AtomSpace introspection data into a structured prompt for diagnostic analysis.
         
         Args:
-            introspection_data: Dictionary of data from the AtomSpace
-            
+            introspection_data: Dictionary containing AtomSpace state, including atom counts, goals, attention summaries, and high STI atoms.
+        
         Returns:
-            Formatted prompt string
+            A formatted prompt string instructing the model to analyze the provided AtomSpace data, summarize cognitive state, identify issues, and suggest optimizations based on CogPrime principles.
         """
         # Create a summary of the data for the prompt
         summary = []
@@ -539,10 +596,9 @@ class NanoCogCLI:
     
     def __init__(self, model_config: ModelConfig):
         """
-        Initialize the CLI.
+        Initializes the NanoCogCLI with model configuration, conversation history, diagnostic mode, and default settings.
         
-        Args:
-            model_config: The model configuration
+        Adds a system message describing NanoCog's role as an AI assistant specialized in CogPrime and OpenCog.
         """
         self.model_config = model_config
         self.history = ConversationHistory()
@@ -565,7 +621,9 @@ class NanoCogCLI:
         )
     
     def print_welcome(self):
-        """Print the welcome message."""
+        """
+        Displays the NanoCog welcome message with usage instructions, using enhanced formatting if available.
+        """
         if RICH_AVAILABLE:
             self.console.print(Panel.fit(
                 "[bold blue]NanoCog[/bold blue] [green]v" + NANOCOG_VERSION + "[/green]\n"
@@ -586,11 +644,11 @@ class NanoCogCLI:
     
     def print_message(self, role: str, content: str):
         """
-        Print a message with appropriate formatting.
+        Displays a message with formatting based on the sender's role.
         
         Args:
-            role: The role of the message sender (user, assistant, system)
-            content: The content of the message
+            role: The sender's role, such as 'user', 'assistant', 'system', 'error', or 'info'.
+            content: The message content to display.
         """
         if RICH_AVAILABLE:
             if role.lower() == "user":
@@ -623,13 +681,9 @@ class NanoCogCLI:
     
     def handle_command(self, command: str) -> bool:
         """
-        Handle a command.
+        Parses and executes a CLI command entered by the user.
         
-        Args:
-            command: The command to handle
-            
-        Returns:
-            True if the command was handled, False if it should be treated as a regular message
+        Handles built-in commands for help, exit, conversation management, example prompts, diagnostic mode operations, model information, settings, and Scheme code input. Returns True if the command was recognized and processed; returns False if the input should be treated as a regular user message.
         """
         cmd_parts = command.strip().split(maxsplit=1)
         cmd = cmd_parts[0].lower()
@@ -807,11 +861,13 @@ class NanoCogCLI:
     
     def update_setting(self, param: str, value: str):
         """
-        Update a setting.
+        Updates a generation parameter with a new value.
         
         Args:
-            param: The parameter to update
-            value: The new value
+            param: The name of the parameter to update ("temperature", "max_tokens", or "top_k").
+            value: The new value to assign to the parameter.
+        
+        If the parameter name is unrecognized or the value is invalid, an error message is displayed.
         """
         try:
             if param == "temperature":
@@ -829,7 +885,11 @@ class NanoCogCLI:
             self.print_message("error", f"Invalid value for {param}: {value}")
     
     def show_settings(self):
-        """Show the current settings."""
+        """
+        Displays the current generation settings for the CLI session.
+        
+        Shows all configurable parameters and their values, using a formatted table if rich output is available.
+        """
         if RICH_AVAILABLE:
             table = Table(title="Current Settings", box=box.ROUNDED)
             table.add_column("Parameter", style="cyan")
@@ -845,7 +905,9 @@ class NanoCogCLI:
                 print(f"{param}: {value}")
     
     def show_model_info(self):
-        """Show information about the loaded model."""
+        """
+        Displays detailed information about the currently loaded model, including architecture parameters and training metadata. If model information is unavailable, notifies the user.
+        """
         if not self.model_config.model_info:
             self.print_message("error", "Model information not available.")
             return
@@ -878,7 +940,12 @@ class NanoCogCLI:
             print(f"  Checkpoint Path: {self.model_config.model_info.get('checkpoint_path', 'Unknown')}")
     
     def show_history(self):
-        """Show the conversation history."""
+        """
+        Displays the conversation history in a formatted table or plain text.
+        
+        If conversation history exists, shows each message with its role and truncated content.
+        Uses rich formatting if available; otherwise, prints to standard output.
+        """
         messages = self.history.get_messages()
         
         if not messages:
@@ -913,13 +980,22 @@ class NanoCogCLI:
                 print(f"{i+1}. {role}: {content}")
     
     def generate_response(self):
-        """Generate a response from the model based on the conversation history."""
+        """
+        Generates and streams a model response based on the current conversation history.
+        
+        Retrieves the formatted conversation prompt, streams the model's generated response token by token to the terminal, and appends the assistant's reply to the conversation history. Returns the generated response text, or None if an error occurs.
+        """
         try:
             prompt = self.history.format_for_prompt()
             
             # Set up streaming callback
             def streaming_callback(token):
                 # Print the token without a newline
+                """
+                Handles streaming output of a generated token during model inference.
+                
+                Prints the provided token to the console without a newline, using rich formatting if available. Returns True to indicate continuation of streaming.
+                """
                 if RICH_AVAILABLE:
                     self.console.print(token, end="")
                 else:
@@ -958,7 +1034,11 @@ class NanoCogCLI:
             return None
     
     def run_diagnostic_analysis(self):
-        """Run a diagnostic analysis on the connected AtomSpace."""
+        """
+        Performs a diagnostic analysis of the connected AtomSpace and streams the model's response.
+        
+        Retrieves introspection data from the AtomSpace, formats it into a diagnostic prompt, and generates an analysis using the model with streaming output. The analysis and corresponding user request are added to the conversation history. Returns the generated analysis text, or None if an error occurs.
+        """
         try:
             # Get introspection data
             introspection_data = self.diagnostic_mode.get_introspection_data()
@@ -973,6 +1053,11 @@ class NanoCogCLI:
             # Set up streaming callback
             def streaming_callback(token):
                 # Print the token without a newline
+                """
+                Handles streaming output of a generated token during model inference.
+                
+                Prints the provided token to the console without a newline, using rich formatting if available. Returns True to indicate continuation of streaming.
+                """
                 if RICH_AVAILABLE:
                     self.console.print(token, end="")
                 else:
@@ -1012,7 +1097,11 @@ class NanoCogCLI:
             return None
     
     def run(self):
-        """Run the CLI interface."""
+        """
+        Starts the interactive command-line interface loop for chatting with the model.
+        
+        Continuously prompts the user for input, processes commands or messages, manages conversation history, and generates model responses. Handles keyboard interrupts for graceful exit and displays error messages on exceptions.
+        """
         self.print_welcome()
         
         while True:
@@ -1049,7 +1138,11 @@ class NanoCogCLI:
 
 # --- Main Function ---
 def main():
-    """Run the NanoCog CLI."""
+    """
+    Parses command-line arguments, loads the nanoGPT model, and starts the NanoCog interactive CLI.
+    
+    This function initializes the model configuration with user-specified parameters, loads the model checkpoint, and launches the NanoCog command-line interface for interactive chatting and diagnostics. Exits with an error message if the model fails to load.
+    """
     parser = argparse.ArgumentParser(description="NanoCog CLI")
     parser.add_argument("--model_path", type=str, required=True, 
                         help="Path to the model checkpoint")

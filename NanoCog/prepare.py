@@ -39,7 +39,16 @@ TRAIN_RATIO = 0.9  # 90% train, 10% validation
 
 # --- Utility Functions ---
 def download_file(url, output_path):
-    """Downloads a file from a URL and saves it locally."""
+    """
+    Downloads a file from the specified URL and saves it to a local path.
+    
+    Args:
+        url: The URL of the file to download.
+        output_path: The local file path where the downloaded file will be saved.
+    
+    Returns:
+        True if the download succeeds, False if an error occurs.
+    """
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
@@ -53,7 +62,11 @@ def download_file(url, output_path):
         return False
 
 def read_file_content(file_path):
-    """Reads and returns the content of a local file."""
+    """
+    Reads the content of a local file, handling encoding issues and missing files gracefully.
+    
+    Attempts to read the file using UTF-8 encoding, falling back to Latin-1 if necessary. Returns an empty string if the file cannot be read.
+    """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
@@ -75,7 +88,11 @@ def read_file_content(file_path):
         return ""
 
 def find_repository_path(repo_name, possible_locations=None):
-    """Find the path to a repository by checking multiple possible locations."""
+    """
+    Searches for a repository directory by name in a list of possible locations and returns its path if found.
+    
+    If no locations are provided, checks several default paths relative to the script's directory. Returns the first matching directory path or None if not found.
+    """
     if possible_locations is None:
         # Default locations to check relative to this script
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -99,14 +116,29 @@ def find_repository_path(repo_name, possible_locations=None):
     return None
 
 def get_file_marker(file_path):
-    """Returns the appropriate file marker based on file extension."""
+    """
+    Generates a formatted marker string for a file based on its extension.
+    
+    The marker provides context about the file type and name, using predefined templates for known extensions or a default marker otherwise.
+    """
     filename = os.path.basename(file_path)
     ext = os.path.splitext(filename)[1].lower()
     marker_template = FILE_TYPE_MARKERS.get(ext, DEFAULT_MARKER)
     return marker_template.format(filename=filename, filepath=file_path)
 
 def get_token_stats(token_ids, enc):
-    """Generate statistics about the tokenized corpus."""
+    """
+    Computes statistics for a tokenized corpus.
+    
+    Calculates total and unique token counts, vocabulary coverage percentage, average decoded token length, and the 20 most common tokens with their decoded representations and frequencies.
+    
+    Args:
+        token_ids: List of token IDs representing the tokenized corpus.
+        enc: Tokenizer object with `decode` and `n_vocab` attributes.
+    
+    Returns:
+        A dictionary containing total tokens, unique tokens, vocabulary coverage percentage, average token length, and the most common tokens.
+    """
     # Count token frequencies
     token_counter = Counter(token_ids)
     
@@ -131,7 +163,15 @@ def get_token_stats(token_ids, enc):
     }
 
 def get_corpus_stats(all_text_content):
-    """Generate statistics about the text corpus."""
+    """
+    Computes aggregate statistics for a text corpus composed of multiple files.
+    
+    Args:
+        all_text_content: A list of (file_path, content) tuples representing the corpus.
+    
+    Returns:
+        A dictionary containing total file count, total character and word counts, file type distribution, the ten largest files by size, and average file size.
+    """
     file_types = defaultdict(int)
     file_sizes = []
     total_chars = 0
@@ -160,7 +200,11 @@ def get_corpus_stats(all_text_content):
     }
 
 def print_stats(corpus_stats, token_stats):
-    """Print formatted statistics about the corpus and tokenization."""
+    """
+    Prints formatted statistics for the prepared corpus and its tokenization.
+    
+    Displays summary information including file counts, character and word totals, file type distribution, largest files, tokenization metrics, and the train/validation token split.
+    """
     print("\n" + "="*80)
     print(" "*30 + "NANOCOG CORPUS STATISTICS")
     print("="*80)
@@ -196,7 +240,19 @@ def print_stats(corpus_stats, token_stats):
     print("\n" + "="*80)
 
 def collect_files(directory, file_pattern, description):
-    """Collect files matching a pattern from a directory."""
+    """
+    Finds and returns a list of files in a directory matching a given glob pattern.
+    
+    Prints a message indicating the number of files found or a warning if none are found.
+    
+    Args:
+        directory: The root directory to search.
+        file_pattern: The glob pattern to match files (supports recursion).
+        description: A short description of the file type for user feedback.
+    
+    Returns:
+        A list of file paths matching the pattern.
+    """
     files = glob.glob(os.path.join(directory, file_pattern), recursive=True)
     if files:
         print(f"✓ Found {len(files)} {description} files")
@@ -205,7 +261,16 @@ def collect_files(directory, file_pattern, description):
     return files
 
 def process_file(file_path, all_text_content):
-    """Process a single file and add it to the content list."""
+    """
+    Reads a file, prepends a file-type marker, and appends the result to the content list.
+    
+    Args:
+        file_path: Path to the file to process.
+        all_text_content: List to which the (file_path, content) tuple will be appended.
+    
+    Returns:
+        True if the file was successfully read and added; False otherwise.
+    """
     print(f"  Processing: {file_path}")
     content = read_file_content(file_path)
     if content:
@@ -215,7 +280,11 @@ def process_file(file_path, all_text_content):
     return False
 
 def main():
-    """Main function to prepare the NanoCog training corpus."""
+    """
+    Prepares the NanoCog training corpus by aggregating, annotating, tokenizing, and saving text and code files from CogPrime and OpenCog sources.
+    
+    This function automates the end-to-end data preparation pipeline: it downloads the CogPrime architecture paper, locates and collects relevant documentation and source files from local repositories, annotates and concatenates their contents, tokenizes the combined text using the GPT-2 tokenizer, computes and prints corpus statistics, splits the data into training and validation sets, saves them as binary files, writes metadata, and cleans up temporary files. The resulting dataset is ready for use in NanoCog model training.
+    """
     start_time = time.time()
     
     # Define the output directory
