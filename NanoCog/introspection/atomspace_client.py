@@ -46,14 +46,10 @@ class AtomSpaceClient:
                  timeout: int = 10,
                  max_retries: int = 3):
         """
-        Initialize the AtomSpace client.
-        
-        Args:
-            endpoint: The base URL of the AtomSpace REST API
-            auth_token: Optional authentication token
-            timeout: Request timeout in seconds
-            max_retries: Maximum number of retries for failed requests
-        """
+                 Initializes an AtomSpaceClient for interacting with an AtomSpace REST API.
+                 
+                 Configures the client with the specified API endpoint, optional authentication token, request timeout, and HTTP retry strategy. Sets up a persistent session with appropriate headers for JSON communication and authorization if provided.
+                 """
         self.endpoint = endpoint.rstrip('/')
         self.auth_token = auth_token
         self.timeout = timeout
@@ -80,10 +76,10 @@ class AtomSpaceClient:
     
     def test_connection(self) -> bool:
         """
-        Test the connection to the AtomSpace.
+        Checks connectivity to the AtomSpace REST API endpoint.
         
         Returns:
-            True if connection is successful, False otherwise
+            True if the connection to the AtomSpace is successful; False otherwise.
         """
         try:
             response = self.session.get(
@@ -104,20 +100,20 @@ class AtomSpaceClient:
                       params: Optional[Dict[str, Any]] = None,
                       data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Make a request to the AtomSpace API.
-        
-        Args:
-            method: HTTP method (GET, POST, PUT, DELETE)
-            path: API path relative to the endpoint
-            params: Optional query parameters
-            data: Optional request body data
-            
-        Returns:
-            Response data as a dictionary
-            
-        Raises:
-            requests.exceptions.RequestException: If the request fails
-        """
+                      Performs an HTTP request to the AtomSpace API and returns the parsed response.
+                      
+                      Args:
+                          method: The HTTP method to use ("GET", "POST", "PUT", or "DELETE").
+                          path: The API path relative to the AtomSpace endpoint.
+                          params: Optional query parameters to include in the request.
+                          data: Optional JSON body to include in the request.
+                      
+                      Returns:
+                          The response data parsed as a dictionary. If the response is not valid JSON, returns a dictionary with the raw response text.
+                      
+                      Raises:
+                          requests.exceptions.RequestException: If the HTTP request fails or an unsupported method is specified.
+                      """
         url = f"{self.endpoint}/{path.lstrip('/')}"
         
         try:
@@ -170,10 +166,10 @@ class AtomSpaceClient:
     
     def get_atom_count(self) -> int:
         """
-        Get the total number of atoms in the AtomSpace.
+        Retrieves the total number of atoms present in the AtomSpace.
         
         Returns:
-            Total atom count
+            The total atom count, or 0 if the request fails.
         """
         try:
             response = self._make_request("GET", "atoms/count")
@@ -184,10 +180,10 @@ class AtomSpaceClient:
     
     def get_atom_types(self) -> List[str]:
         """
-        Get all atom types in the AtomSpace.
+        Retrieves the list of all atom types available in the AtomSpace.
         
         Returns:
-            List of atom type names
+            A list of atom type names. Returns an empty list if the request fails.
         """
         try:
             response = self._make_request("GET", "types")
@@ -201,16 +197,16 @@ class AtomSpaceClient:
                           limit: int = 100, 
                           offset: int = 0) -> List[Dict[str, Any]]:
         """
-        Get atoms of a specific type.
-        
-        Args:
-            atom_type: The type of atoms to retrieve
-            limit: Maximum number of atoms to retrieve
-            offset: Offset for pagination
-            
-        Returns:
-            List of atoms as dictionaries
-        """
+                          Retrieves a list of atoms of the specified type with pagination support.
+                          
+                          Args:
+                              atom_type: The type of atoms to retrieve.
+                              limit: Maximum number of atoms to return.
+                              offset: Number of atoms to skip for pagination.
+                          
+                          Returns:
+                              A list of atom dictionaries matching the specified type, or an empty list if the request fails.
+                          """
         try:
             response = self._make_request(
                 "GET", 
@@ -224,13 +220,13 @@ class AtomSpaceClient:
     
     def get_atom_by_handle(self, handle: str) -> Optional[Dict[str, Any]]:
         """
-        Get an atom by its handle.
+        Retrieves an atom from the AtomSpace by its unique handle.
         
         Args:
-            handle: The handle of the atom to retrieve
-            
+            handle: The unique identifier of the atom to retrieve.
+        
         Returns:
-            Atom as a dictionary, or None if not found
+            A dictionary representing the atom if found, or None if the atom does not exist or the request fails.
         """
         try:
             response = self._make_request("GET", f"atoms/{handle}")
@@ -241,14 +237,14 @@ class AtomSpaceClient:
     
     def get_incoming_set(self, handle: str, limit: int = 100) -> List[Dict[str, Any]]:
         """
-        Get the incoming set of an atom.
+        Retrieves atoms that have outgoing links to the specified atom.
         
         Args:
-            handle: The handle of the atom
-            limit: Maximum number of atoms to retrieve
-            
+            handle: The unique identifier of the target atom.
+            limit: The maximum number of incoming atoms to retrieve.
+        
         Returns:
-            List of atoms in the incoming set
+            A list of atoms that reference the specified atom as an outgoing connection. Returns an empty list if the request fails.
         """
         try:
             response = self._make_request(
@@ -263,13 +259,13 @@ class AtomSpaceClient:
     
     def get_outgoing_set(self, handle: str) -> List[Dict[str, Any]]:
         """
-        Get the outgoing set of an atom.
+        Retrieves the outgoing set of atoms for a specified atom handle.
         
         Args:
-            handle: The handle of the atom
-            
+            handle: The unique identifier of the atom whose outgoing set is requested.
+        
         Returns:
-            List of atoms in the outgoing set
+            A list of atoms that are directly connected as outgoing links from the specified atom. Returns an empty list if the request fails or no outgoing atoms are found.
         """
         try:
             response = self._make_request("GET", f"atoms/{handle}/outgoing")
@@ -285,16 +281,16 @@ class AtomSpaceClient:
                          max_sti: Optional[float] = None, 
                          limit: int = 100) -> List[Dict[str, Any]]:
         """
-        Get atoms with STI values in a specified range.
-        
-        Args:
-            min_sti: Minimum STI value
-            max_sti: Maximum STI value (optional)
-            limit: Maximum number of atoms to retrieve
-            
-        Returns:
-            List of atoms as dictionaries
-        """
+                         Retrieves atoms whose Short-Term Importance (STI) values fall within a specified range.
+                         
+                         Args:
+                             min_sti: The minimum STI value to filter atoms.
+                             max_sti: The maximum STI value to filter atoms (if provided).
+                             limit: The maximum number of atoms to retrieve.
+                         
+                         Returns:
+                             A list of atom dictionaries matching the STI criteria, or an empty list if the request fails.
+                         """
         params = {"min_sti": min_sti, "limit": limit}
         if max_sti is not None:
             params["max_sti"] = max_sti
@@ -311,16 +307,16 @@ class AtomSpaceClient:
                          max_lti: Optional[float] = None, 
                          limit: int = 100) -> List[Dict[str, Any]]:
         """
-        Get atoms with LTI values in a specified range.
-        
-        Args:
-            min_lti: Minimum LTI value
-            max_lti: Maximum LTI value (optional)
-            limit: Maximum number of atoms to retrieve
-            
-        Returns:
-            List of atoms as dictionaries
-        """
+                         Retrieves atoms whose Long-Term Importance (LTI) values fall within a specified range.
+                         
+                         Args:
+                             min_lti: The minimum LTI value to filter atoms.
+                             max_lti: The maximum LTI value to filter atoms (optional).
+                             limit: The maximum number of atoms to retrieve.
+                         
+                         Returns:
+                             A list of atom dictionaries matching the LTI criteria. Returns an empty list if the request fails.
+                         """
         params = {"min_lti": min_lti, "limit": limit}
         if max_lti is not None:
             params["max_lti"] = max_lti
@@ -334,10 +330,10 @@ class AtomSpaceClient:
     
     def get_attention_statistics(self) -> Dict[str, Any]:
         """
-        Get statistics about attention allocation in the AtomSpace.
+        Retrieves attention allocation statistics from the AtomSpace.
         
         Returns:
-            Dictionary with attention statistics
+            A dictionary containing attention statistics, or an empty dictionary if the request fails.
         """
         try:
             response = self._make_request("GET", "attention/statistics")
@@ -350,13 +346,13 @@ class AtomSpaceClient:
     
     def get_active_goals(self, limit: int = 20) -> List[Dict[str, Any]]:
         """
-        Get currently active goals in the system.
+        Retrieves a list of currently active goals in the AtomSpace system.
         
         Args:
-            limit: Maximum number of goals to retrieve
-            
+            limit: The maximum number of active goals to retrieve.
+        
         Returns:
-            List of active goals as dictionaries
+            A list of dictionaries representing active goals. Returns an empty list if the request fails.
         """
         try:
             response = self._make_request("GET", "goals/active", params={"limit": limit})
@@ -367,13 +363,13 @@ class AtomSpaceClient:
     
     def get_goal_hierarchy(self, goal_handle: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get the goal hierarchy, optionally starting from a specific goal.
+        Retrieves the goal hierarchy from the AtomSpace, optionally rooted at a specified goal.
         
         Args:
-            goal_handle: Optional handle of the root goal
-            
+            goal_handle: The handle of the root goal to start the hierarchy from, if provided.
+        
         Returns:
-            Dictionary representing the goal hierarchy
+            A dictionary representing the goal hierarchy, or an empty dictionary if retrieval fails.
         """
         try:
             params = {}
@@ -392,15 +388,15 @@ class AtomSpaceClient:
                               min_support: float = 0.1, 
                               max_patterns: int = 20) -> List[Dict[str, Any]]:
         """
-        Get frequent patterns in the AtomSpace.
-        
-        Args:
-            min_support: Minimum support threshold for patterns
-            max_patterns: Maximum number of patterns to retrieve
-            
-        Returns:
-            List of patterns as dictionaries
-        """
+                              Retrieves frequent patterns from the AtomSpace that meet a minimum support threshold.
+                              
+                              Args:
+                                  min_support: The minimum support value a pattern must have to be included.
+                                  max_patterns: The maximum number of patterns to return.
+                              
+                              Returns:
+                                  A list of dictionaries representing frequent patterns, or an empty list if the request fails.
+                              """
         try:
             response = self._make_request(
                 "GET", 
@@ -415,14 +411,14 @@ class AtomSpaceClient:
     def get_surprising_patterns(self, 
                                 max_patterns: int = 20) -> List[Dict[str, Any]]:
         """
-        Get surprising (low probability but significant) patterns in the AtomSpace.
-        
-        Args:
-            max_patterns: Maximum number of patterns to retrieve
-            
-        Returns:
-            List of patterns as dictionaries
-        """
+                                Retrieves surprising patterns from the AtomSpace, prioritizing those with low probability but high significance.
+                                
+                                Args:
+                                    max_patterns: The maximum number of patterns to retrieve.
+                                
+                                Returns:
+                                    A list of dictionaries representing surprising patterns. Returns an empty list if the request fails.
+                                """
         try:
             response = self._make_request(
                 "GET", 
@@ -436,10 +432,10 @@ class AtomSpaceClient:
     
     def analyze_atom_distribution(self) -> Dict[str, Any]:
         """
-        Analyze the distribution of atoms by type in the AtomSpace.
+        Analyzes the distribution of atoms by type in the AtomSpace.
         
         Returns:
-            Dictionary with distribution statistics
+            A dictionary containing the total atom count, counts and percentages for each atom type, and a list of atom types sorted by count in descending order.
         """
         try:
             # Get all atom types
@@ -488,10 +484,11 @@ class AtomSpaceClient:
     
     def analyze_attention_distribution(self) -> Dict[str, Any]:
         """
-        Analyze the distribution of attention (STI/LTI) in the AtomSpace.
+        Analyzes the distribution of attention (STI/LTI) across atoms in the AtomSpace.
         
         Returns:
-            Dictionary with attention distribution statistics
+            A dictionary containing overall attention statistics, counts of high STI atoms by type,
+            and the distribution of atoms across predefined STI ranges.
         """
         try:
             # Get attention statistics
@@ -545,13 +542,15 @@ class AtomSpaceClient:
     
     def analyze_cognitive_schematics(self, limit: int = 100) -> Dict[str, Any]:
         """
-        Analyze cognitive schematics (Context -> Procedure -> Goal) in the AtomSpace.
+        Analyzes cognitive schematics in the AtomSpace and summarizes their outcomes.
+        
+        Retrieves up to the specified number of cognitive schematics (Context → Procedure → Goal), counts successful, failed, and unknown statuses, calculates the success rate, groups schematics by goal, and identifies the most common goals.
         
         Args:
-            limit: Maximum number of schematics to analyze
-            
+            limit: Maximum number of schematics to analyze.
+        
         Returns:
-            Dictionary with schematic analysis
+            A dictionary containing the total number of schematics, counts of each status, success rate, schematics grouped by goal, and the top goals by schematic count.
         """
         try:
             # Get cognitive schematics
@@ -608,10 +607,12 @@ class AtomSpaceClient:
     
     def get_cognitive_state_summary(self) -> Dict[str, Any]:
         """
-        Get a comprehensive summary of the cognitive state of the system.
+        Aggregates and returns a comprehensive summary of the system's cognitive state.
+        
+        The summary includes timestamp, atom count, active goals, attention and atom distributions, cognitive schematics, and high-level metrics such as goal count, high STI atom count, schematic success rate, and atom type diversity. On error, returns a summary with error details and empty fields.
         
         Returns:
-            Dictionary with various aspects of the cognitive state
+            A dictionary containing cognitive state information and metrics.
         """
         try:
             summary = {
@@ -647,10 +648,10 @@ class AtomSpaceClient:
     
     def detect_cognitive_bottlenecks(self) -> List[Dict[str, Any]]:
         """
-        Detect potential bottlenecks in the cognitive system.
+        Analyzes the cognitive state to identify potential bottlenecks such as attention concentration, goal proliferation, low schematic success rates, and atom type imbalances.
         
         Returns:
-            List of detected bottlenecks with descriptions and severity
+            A list of detected bottlenecks, each with type, description, severity, and recommendations. If an error occurs during analysis, returns a single entry describing the error.
         """
         bottlenecks = []
         
@@ -723,15 +724,17 @@ class AtomSpaceClient:
                                      include_bottlenecks: bool = True,
                                      include_recommendations: bool = True) -> Dict[str, Any]:
         """
-        Generate a comprehensive introspection report.
-        
-        Args:
-            include_bottlenecks: Whether to include bottleneck detection
-            include_recommendations: Whether to include recommendations
-            
-        Returns:
-            Dictionary with the complete report
-        """
+                                     Generates a comprehensive introspection report of the AtomSpace cognitive state.
+                                     
+                                     The report includes a summary of cognitive metrics, optionally detected bottlenecks and recommendations, and a human-readable summary. Returns a dictionary containing all report components. If an error occurs, returns a dictionary with error details and a summary message.
+                                     
+                                     Args:
+                                         include_bottlenecks: If True, includes detected cognitive bottlenecks in the report.
+                                         include_recommendations: If True and bottlenecks are included, adds recommendations for each bottleneck.
+                                     
+                                     Returns:
+                                         A dictionary containing the introspection report, including cognitive state summary, bottlenecks, recommendations, and a human-readable summary. On error, returns a dictionary with error information.
+                                     """
         try:
             # Get basic cognitive state
             summary = self.get_cognitive_state_summary()
@@ -768,13 +771,13 @@ class AtomSpaceClient:
     
     def _generate_readable_summary(self, summary: Dict[str, Any]) -> str:
         """
-        Generate a human-readable summary from the introspection data.
+        Creates a formatted, human-readable summary string from the provided introspection summary dictionary.
         
         Args:
-            summary: The introspection summary dictionary
-            
+            summary: The introspection summary data containing atom counts, goals, distributions, schematics, bottlenecks, and recommendations.
+        
         Returns:
-            A human-readable summary string
+            A multi-line string summarizing the cognitive state, including atom counts, active goals, attention and atom type distributions, cognitive schematics, detected bottlenecks, and recommendations.
         """
         lines = []
         
@@ -851,10 +854,10 @@ class AtomSpaceClient:
     
     def mock_get_cognitive_state(self) -> Dict[str, Any]:
         """
-        Generate mock cognitive state data for testing.
+        Generates randomized mock cognitive state data for testing and development purposes.
         
         Returns:
-            Dictionary with mock cognitive state data
+            A dictionary containing simulated values for atom count, active goals, attention and atom distributions, cognitive schematics, detected bottlenecks, recommendations, and summary metrics.
         """
         import random
         
@@ -1034,7 +1037,9 @@ class AtomSpaceClient:
 
 def main():
     """
-    Command-line interface for testing the AtomSpaceClient.
+    Runs the command-line interface for AtomSpace introspection and reporting.
+    
+    Parses command-line arguments to connect to an AtomSpace REST API or generate mock data, produces an introspection report, prints a human-readable summary, and optionally saves the report as JSON.
     """
     import argparse
     
