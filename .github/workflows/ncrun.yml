@@ -48,12 +48,12 @@ jobs:
 
     steps:
     - name: Checkout opencog-central
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: opencog-central
 
     - name: Checkout nanoGPT
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: drzo/nanoGPT
         path: nanoGPT
