@@ -62,12 +62,12 @@ jobs:
 
     steps:
     - name: Checkout opencog-central
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: opencog-central
 
     - name: Checkout nanoGPT
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: drzo/nanoGPT
         path: nanoGPT
@@ -176,7 +176,7 @@ jobs:
         python sample.py --out_dir=${{ steps.params.outputs.output_dir }} --start="Explain cognitive synergy in CogPrime:" --max_new_tokens=50
 
     - name: Upload trained model
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nanocog-model-${{ steps.params.outputs.output_dir }}
         path: nanoGPT/${{ steps.params.outputs.output_dir }}/
