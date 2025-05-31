@@ -37,6 +37,121 @@ FILE_TYPE_MARKERS = {
 DEFAULT_MARKER = "\n\n# File: {filename}\n# Path: {filepath}\n\n"
 TRAIN_RATIO = 0.9  # 90% train, 10% validation
 
+# --- Hypergraph Pattern Templates ---
+COGNITIVE_SCHEMATIC_TEMPLATES = {
+    'context_procedure_goal': '''
+;; Cognitive Schematic: Context → Procedure → Goal
+(ImplicationLink (stv 0.85 0.92)
+  (AndLink
+    (StateLink (ConceptNode "Context-{context}") (ConceptNode "active"))
+    (EvaluationLink (PredicateNode "condition-{condition}") 
+                   (ListLink (VariableNode "$X") (ConceptNode "parameter-{param}"))))
+  (SequentialLink
+    (ExecutionLink (SchemaNode "procedure-{proc1}") (VariableNode "$X"))
+    (ExecutionLink (SchemaNode "procedure-{proc2}") (VariableNode "$X"))
+    (EvaluationLink (PredicateNode "goal-{goal}") (VariableNode "$X"))))
+''',
+    
+    'attention_allocation': '''
+;; ECAN Attention Allocation Pattern
+(AtomSpace
+  (set-sti! (ConceptNode "{concept}") {sti_value})
+  (set-lti! (ConceptNode "{memory_pattern}") {lti_value})
+  (set-av! (SchemaNode "{schema}") (av {av_sti} {av_lti})))
+
+;; Attention spreading pattern
+(cog-stimulate (ConceptNode "{target_concept}") {stimulation_amount})
+''',
+    
+    'inference_chain': '''
+;; PLN Inference Chain
+(ImplicationLink (stv {tv_strength} {tv_confidence})
+  (InheritanceLink (ConceptNode "{concept_a}") (ConceptNode "{concept_b}"))
+  (InheritanceLink (ConceptNode "{concept_b}") (ConceptNode "{concept_c}")))
+
+(InheritanceLink (stv {derived_strength} {derived_confidence})
+  (ConceptNode "{concept_a}") (ConceptNode "{concept_c}"))
+''',
+    
+    'goal_hierarchy': '''
+;; Goal Hierarchy Structure
+(ImplicationLink (stv 0.9 0.85)
+  (SatisfactionLink (GoalNode "{parent_goal}"))
+  (AndLink
+    (SatisfactionLink (GoalNode "{sub_goal_1}"))
+    (SatisfactionLink (GoalNode "{sub_goal_2}"))
+    (SatisfactionLink (GoalNode "{sub_goal_3}"))))
+
+;; Goal activation pattern  
+(EvaluationLink (stv 0.8 0.7)
+  (PredicateNode "goal-priority")
+  (ListLink (GoalNode "{parent_goal}") (NumberNode {priority})))
+''',
+    
+    'pattern_mining_result': '''
+;; Pattern Mining Discovery
+(EvaluationLink (stv {support} {confidence})
+  (PredicateNode "frequent-pattern")
+  (ListLink
+    (ConceptNode "{pattern_element_1}")
+    (ConceptNode "{pattern_element_2}")
+    (ConceptNode "{pattern_element_3}")))
+
+;; Surprising pattern detection
+(EvaluationLink (stv {surprise_value} 0.9)
+  (PredicateNode "surprising-association")
+  (ListLink (ConceptNode "{element_a}") (ConceptNode "{element_b}")))
+'''
+}
+
+DIAGNOSTIC_PATTERN_TEMPLATES = {
+    'bottleneck_analysis': '''
+;; Cognitive Bottleneck Analysis
+;; Context: High STI concentration indicates attention bottleneck
+(EvaluationLink (stv 0.9 0.8)
+  (PredicateNode "attention-bottleneck")
+  (ListLink
+    (ConceptNode "sti-distribution")
+    (NumberNode {high_sti_count})
+    (NumberNode {total_atoms})))
+
+;; Recommendation: Adjust ECAN parameters
+(ImplicationLink (stv 0.85 0.9)
+  (EvaluationLink (PredicateNode "attention-bottleneck") (VariableNode "$X"))
+  (ExecutionLink (SchemaNode "adjust-ecan-decay") (NumberNode {decay_rate})))
+''',
+    
+    'goal_proliferation': '''
+;; Goal Proliferation Detection
+(EvaluationLink (stv {severity} 0.9)
+  (PredicateNode "goal-proliferation")
+  (ListLink (NumberNode {active_goals}) (NumberNode {threshold})))
+
+;; Pruning recommendation
+(ImplicationLink (stv 0.8 0.85)
+  (EvaluationLink (PredicateNode "goal-proliferation") (VariableNode "$X"))
+  (ExecutionLink (SchemaNode "increase-goal-selection-threshold") 
+                 (NumberNode {new_threshold})))
+''',
+    
+    'schematic_success_analysis': '''
+;; Cognitive Schematic Success Rate Analysis
+(EvaluationLink (stv {success_rate} {confidence})
+  (PredicateNode "schematic-performance")
+  (ListLink
+    (ConceptNode "{schematic_type}")
+    (NumberNode {success_count})
+    (NumberNode {total_attempts})))
+
+;; Learning parameter adjustment
+(ImplicationLink (stv 0.9 0.8)
+  (EvaluationLink (PredicateNode "low-schematic-success") (VariableNode "$X"))
+  (ExecutionLink (SchemaNode "adjust-learning-parameters")
+                 (ListLink (NumberNode {new_learning_rate}) 
+                          (NumberNode {new_exploration_factor}))))
+'''
+}
+
 # --- Utility Functions ---
 def download_file(url, output_path):
     """
@@ -279,6 +394,181 @@ def process_file(file_path, all_text_content):
         return True
     return False
 
+def generate_hypergraph_samples():
+    """
+    Generate synthetic hypergraph-encoded cognitive pattern samples for training.
+    
+    Creates structured examples of cognitive schematics, attention patterns,
+    inference chains, goal hierarchies, and diagnostic analyses to enhance
+    the model's understanding of neural-symbolic synergy principles.
+    
+    Returns:
+        List of (file_path, content) tuples containing synthetic samples
+    """
+    import random
+    import uuid
+    
+    samples = []
+    
+    # Concept vocabularies for generating diverse patterns
+    contexts = ['human_interaction', 'problem_solving', 'learning', 'exploration', 'communication', 'planning']
+    conditions = ['present', 'active', 'satisfied', 'triggered', 'available', 'detected']
+    procedures = ['analyze', 'respond', 'learn', 'explore', 'communicate', 'plan', 'execute', 'evaluate']
+    goals = ['understand', 'achieve', 'learn', 'explore', 'help', 'optimize', 'create', 'solve']
+    concepts = ['knowledge', 'experience', 'pattern', 'relationship', 'behavior', 'skill', 'memory', 'attention']
+    
+    # Generate cognitive schematic samples
+    for i in range(20):
+        template_name = random.choice(list(COGNITIVE_SCHEMATIC_TEMPLATES.keys()))
+        template = COGNITIVE_SCHEMATIC_TEMPLATES[template_name]
+        
+        # Fill template with random but coherent values
+        if template_name == 'context_procedure_goal':
+            content = template.format(
+                context=random.choice(contexts),
+                condition=random.choice(conditions),
+                param=random.choice(concepts),
+                proc1=random.choice(procedures),
+                proc2=random.choice(procedures),
+                goal=random.choice(goals)
+            )
+        elif template_name == 'attention_allocation':
+            content = template.format(
+                concept=random.choice(concepts),
+                sti_value=round(random.uniform(0.1, 0.9), 2),
+                memory_pattern=f"{random.choice(concepts)}_pattern",
+                lti_value=round(random.uniform(0.1, 0.8), 2),
+                schema=f"{random.choice(procedures)}_schema",
+                av_sti=round(random.uniform(0.1, 0.9), 2),
+                av_lti=round(random.uniform(0.1, 0.8), 2),
+                target_concept=random.choice(concepts),
+                stimulation_amount=round(random.uniform(0.1, 0.5), 2)
+            )
+        elif template_name == 'inference_chain':
+            concept_a = random.choice(concepts)
+            concept_b = f"{random.choice(concepts)}_type"
+            concept_c = f"{random.choice(concepts)}_category"
+            content = template.format(
+                concept_a=concept_a,
+                concept_b=concept_b,
+                concept_c=concept_c,
+                tv_strength=round(random.uniform(0.7, 0.95), 2),
+                tv_confidence=round(random.uniform(0.8, 0.95), 2),
+                derived_strength=round(random.uniform(0.6, 0.9), 2),
+                derived_confidence=round(random.uniform(0.7, 0.9), 2)
+            )
+        elif template_name == 'goal_hierarchy':
+            content = template.format(
+                parent_goal=f"{random.choice(goals)}_main",
+                sub_goal_1=f"{random.choice(goals)}_sub1",
+                sub_goal_2=f"{random.choice(goals)}_sub2", 
+                sub_goal_3=f"{random.choice(goals)}_sub3",
+                priority=random.randint(1, 10)
+            )
+        elif template_name == 'pattern_mining_result':
+            content = template.format(
+                support=round(random.uniform(0.1, 0.8), 2),
+                confidence=round(random.uniform(0.7, 0.95), 2),
+                pattern_element_1=random.choice(concepts),
+                pattern_element_2=random.choice(concepts),
+                pattern_element_3=random.choice(concepts),
+                surprise_value=round(random.uniform(0.6, 0.9), 2),
+                element_a=random.choice(concepts),
+                element_b=random.choice(concepts)
+            )
+        
+        file_path = f"synthetic_cognitive_schematic_{template_name}_{i+1}.scm"
+        marker = get_file_marker(file_path)
+        samples.append((file_path, marker + content))
+    
+    # Generate diagnostic pattern samples
+    for i in range(15):
+        template_name = random.choice(list(DIAGNOSTIC_PATTERN_TEMPLATES.keys()))
+        template = DIAGNOSTIC_PATTERN_TEMPLATES[template_name]
+        
+        if template_name == 'bottleneck_analysis':
+            total_atoms = random.randint(5000, 20000)
+            high_sti_count = random.randint(100, 500)
+            content = template.format(
+                high_sti_count=high_sti_count,
+                total_atoms=total_atoms,
+                decay_rate=round(random.uniform(0.01, 0.1), 3)
+            )
+        elif template_name == 'goal_proliferation':
+            active_goals = random.randint(8, 25)
+            threshold = 7
+            severity = 0.9 if active_goals > 15 else 0.6
+            content = template.format(
+                severity=severity,
+                active_goals=active_goals,
+                threshold=threshold,
+                new_threshold=threshold + 2
+            )
+        elif template_name == 'schematic_success_analysis':
+            total_attempts = random.randint(50, 200)
+            success_count = random.randint(20, total_attempts)
+            success_rate = round(success_count / total_attempts, 2)
+            content = template.format(
+                success_rate=success_rate,
+                confidence=round(random.uniform(0.8, 0.95), 2),
+                schematic_type=f"{random.choice(procedures)}_schematic",
+                success_count=success_count,
+                total_attempts=total_attempts,
+                new_learning_rate=round(random.uniform(0.001, 0.01), 4),
+                new_exploration_factor=round(random.uniform(0.1, 0.3), 2)
+            )
+        
+        file_path = f"synthetic_diagnostic_pattern_{template_name}_{i+1}.scm"
+        marker = get_file_marker(file_path)
+        samples.append((file_path, marker + content))
+    
+    # Generate curriculum learning examples
+    curriculum_examples = [
+        # Basic Atomese examples
+        '''
+;; Basic Atomese Construction
+(ConceptNode "basic_concept")
+(PredicateNode "simple_predicate") 
+(ListLink (ConceptNode "element1") (ConceptNode "element2"))
+(EvaluationLink (PredicateNode "relation") 
+                (ListLink (ConceptNode "subject") (ConceptNode "object")))
+''',
+        # Intermediate patterns
+        '''
+;; Intermediate Cognitive Pattern
+(ImplicationLink (stv 0.8 0.9)
+  (EvaluationLink (PredicateNode "condition") (VariableNode "$X"))
+  (EvaluationLink (PredicateNode "consequence") (VariableNode "$X")))
+  
+(InheritanceLink (ConceptNode "specific") (ConceptNode "general"))
+''',
+        # Advanced synergy patterns
+        '''
+;; Advanced Neural-Symbolic Synergy
+(define moses-fitness-function
+  (lambda (program)
+    (let ((predictions (execute-program program test-cases))
+          (ecan-relevance (get-attention-value program)))
+      (* (accuracy predictions) ecan-relevance))))
+
+(BindLink
+  (VariableList (VariableNode "$X") (VariableNode "$Y"))
+  (AndLink
+    (InheritanceLink (VariableNode "$X") (ConceptNode "learning_target"))
+    (EvaluationLink (PredicateNode "pln_inference") 
+                   (ListLink (VariableNode "$X") (VariableNode "$Y"))))
+  (ExecutionLink (SchemaNode "moses_evolve") 
+                 (ListLink (VariableNode "$X") (VariableNode "$Y"))))
+'''
+    ]
+    
+    for i, example in enumerate(curriculum_examples):
+        file_path = f"synthetic_curriculum_example_{i+1}.scm"
+        marker = get_file_marker(file_path)
+        samples.append((file_path, marker + example))
+    
+    return samples
+
 def main():
     """
     Prepares the NanoCog training corpus by aggregating, annotating, tokenizing, and saving text and code files from CogPrime and OpenCog sources.
@@ -362,6 +652,12 @@ def main():
     if not all_text_content:
         print("\n❌ No content collected. Exiting. Please check data source paths and availability.")
         sys.exit(1)
+    
+    # Inject hypergraph-encoded cognitive patterns
+    print("\n🧠 Injecting hypergraph-encoded cognitive patterns...")
+    hypergraph_samples = generate_hypergraph_samples()
+    all_text_content.extend(hypergraph_samples)
+    print(f"   Added {len(hypergraph_samples)} hypergraph pattern samples")
     
     # Calculate corpus statistics
     print("\n📊 Calculating corpus statistics...")
