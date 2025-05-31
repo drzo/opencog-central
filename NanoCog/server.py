@@ -45,6 +45,14 @@ logger = logging.getLogger("nanocog")
 class ModelConfig:
     """Configuration for the nanoGPT model."""
     def __init__(self, model_path: str, device: str = "cuda", max_tokens: int = 2048):
+        """
+        Initializes the ModelConfig with model checkpoint path, device, and maximum token context size.
+        
+        Args:
+            model_path: Path to the nanoGPT model checkpoint file.
+            device: Device to load the model on (e.g., "cuda" or "cpu"). Defaults to "cuda".
+            max_tokens: Maximum number of tokens for the model's context window. Defaults to 2048.
+        """
         self.model_path = model_path
         self.device = device
         self.max_tokens = max_tokens
@@ -52,7 +60,17 @@ class ModelConfig:
         self.tokenizer = None
 
     def load_model(self):
-        """Load the nanoGPT model from checkpoint."""
+        """
+        Loads the nanoGPT model from a checkpoint file.
+        
+        Initializes the model configuration, loads the model weights (handling any unwanted key prefixes), sets the model to evaluation mode on the specified device, and initializes the GPT-2 tokenizer. Raises a RuntimeError if loading fails.
+        
+        Returns:
+            True if the model is loaded successfully.
+        
+        Raises:
+            RuntimeError: If the model or tokenizer fails to load.
+        """
         try:
             logger.info(f"Loading model from {self.model_path}")
             checkpoint = torch.load(self.model_path, map_location=self.device)
@@ -85,18 +103,23 @@ class ModelConfig:
                  temperature: float = 0.7, top_k: int = 200,
                  stream: bool = False) -> Union[str, AsyncGenerator[str, None]]:
         """
-        Generate text from the model.
-        
-        Args:
-            prompt: The input prompt
-            max_new_tokens: Maximum number of tokens to generate
-            temperature: Sampling temperature (higher = more random)
-            top_k: Only sample from the top k most likely tokens
-            stream: If True, stream the response token by token
-            
-        Returns:
-            Generated text or an async generator for streaming
-        """
+                 Generates text from the loaded model based on the provided prompt.
+                 
+                 If streaming is enabled, returns an asynchronous generator yielding tokens one by one; otherwise, returns the full generated text as a string.
+                 
+                 Args:
+                     prompt: Input text prompt to condition the model.
+                     max_new_tokens: Maximum number of tokens to generate in the response.
+                     temperature: Sampling temperature for controlling randomness.
+                     top_k: Limits sampling to the top k most probable tokens.
+                     stream: If True, yields tokens as they are generated.
+                 
+                 Returns:
+                     The generated text as a string, or an async generator yielding tokens if streaming is enabled.
+                 
+                 Raises:
+                     RuntimeError: If the model or tokenizer is not loaded.
+                 """
         if not self.model or not self.tokenizer:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
@@ -117,7 +140,18 @@ class ModelConfig:
             return self._batch_generate(x, max_new_tokens, temperature, top_k)
     
     def _batch_generate(self, x, max_new_tokens, temperature, top_k):
-        """Generate text in a single batch."""
+        """
+        Generates text continuation for a given input tensor using the model in batch mode.
+        
+        Args:
+            x: Input tensor representing encoded prompt tokens.
+            max_new_tokens: Maximum number of tokens to generate.
+            temperature: Sampling temperature for generation.
+            top_k: Limits sampling to the top_k most probable tokens.
+        
+        Returns:
+            The generated text as a string, excluding the original prompt.
+        """
         with torch.no_grad():
             with torch.amp.autocast(device_type='cuda' if 'cuda' in self.device else 'cpu'):
                 y = self.model.generate(
@@ -131,7 +165,11 @@ class ModelConfig:
                 return generated_text
     
     async def _stream_generate(self, x, max_new_tokens, temperature, top_k):
-        """Stream tokens as they're generated."""
+        """
+        Asynchronously generates and yields tokens one at a time from the model, enabling streaming text output.
+        
+        Tokens are generated using temperature and top-k sampling, with each new token yielded as soon as it is produced. Generation stops when the maximum number of tokens is reached or the end-of-text token is encountered.
+        """
         with torch.no_grad():
             with torch.amp.autocast(device_type='cuda' if 'cuda' in self.device else 'cpu'):
                 # Get the input sequence length to know where to start yielding new tokens
@@ -187,16 +225,21 @@ class AtomSpaceClient:
     
     def __init__(self, endpoint: str):
         """
-        Initialize the AtomSpace client.
+        Initializes an AtomSpaceClient for interacting with an AtomSpace REST API.
         
         Args:
-            endpoint: The URL of the AtomSpace REST API
+            endpoint: The base URL of the AtomSpace REST API.
         """
         self.endpoint = endpoint
         self.session = requests.Session()
     
     def test_connection(self) -> bool:
-        """Test the connection to the AtomSpace."""
+        """
+        Checks if the AtomSpace endpoint is reachable and responsive.
+        
+        Returns:
+            True if the AtomSpace status endpoint responds successfully; otherwise, False.
+        """
         try:
             response = self.session.get(f"{self.endpoint}/status", timeout=5)
             response.raise_for_status()
@@ -206,7 +249,12 @@ class AtomSpaceClient:
             return False
     
     def get_atom_count(self) -> int:
-        """Get the total number of atoms in the AtomSpace."""
+        """
+        Retrieves the total number of atoms from the AtomSpace.
+        
+        Returns:
+            The atom count as an integer, or 0 if the request fails.
+        """
         try:
             response = self.session.get(f"{self.endpoint}/atoms/count", timeout=5)
             response.raise_for_status()
@@ -216,7 +264,16 @@ class AtomSpaceClient:
             return 0
     
     def get_atoms_by_type(self, atom_type: str, limit: int = 100) -> List[Dict[str, Any]]:
-        """Get atoms of a specific type."""
+        """
+        Retrieves a list of atoms of the specified type from the AtomSpace.
+        
+        Args:
+            atom_type: The type of atoms to retrieve.
+            limit: The maximum number of atoms to return.
+        
+        Returns:
+            A list of dictionaries representing atoms of the given type, or an empty list if the request fails.
+        """
         try:
             response = self.session.get(
                 f"{self.endpoint}/atoms/type/{atom_type}",
@@ -230,7 +287,16 @@ class AtomSpaceClient:
             return []
     
     def get_high_sti_atoms(self, threshold: float = 0.5, limit: int = 100) -> List[Dict[str, Any]]:
-        """Get atoms with STI above a threshold."""
+        """
+        Retrieves atoms with STI (Short-Term Importance) values above a specified threshold.
+        
+        Args:
+            threshold: Minimum STI value for atoms to be included.
+            limit: Maximum number of atoms to retrieve.
+        
+        Returns:
+            A list of atoms with STI above the threshold, or an empty list if the request fails.
+        """
         try:
             # This is a conceptual endpoint - actual implementation depends on the AtomSpace REST API
             response = self.session.get(
@@ -245,7 +311,15 @@ class AtomSpaceClient:
             return []
     
     def get_active_goals(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """Get currently active goals in the system."""
+        """
+        Retrieves a list of currently active goals from the AtomSpace system.
+        
+        Args:
+            limit: The maximum number of active goals to retrieve.
+        
+        Returns:
+            A list of dictionaries representing active goals, or an empty list if retrieval fails.
+        """
         try:
             # This is a conceptual endpoint - actual implementation depends on the AtomSpace REST API
             response = self.session.get(
@@ -260,7 +334,12 @@ class AtomSpaceClient:
             return []
     
     def get_attention_allocation_summary(self) -> Dict[str, Any]:
-        """Get a summary of the attention allocation in the system."""
+        """
+        Retrieves a summary of attention allocation from the AtomSpace system.
+        
+        Returns:
+            A dictionary containing attention allocation data, or an empty dictionary if the request fails.
+        """
         try:
             # This is a conceptual endpoint - actual implementation depends on the AtomSpace REST API
             response = self.session.get(
@@ -275,8 +354,9 @@ class AtomSpaceClient:
     
     def get_agent_introspection_data(self) -> Dict[str, Any]:
         """
-        Get comprehensive introspection data about the agent.
-        This aggregates multiple queries to build a complete picture.
+        Aggregates and returns comprehensive introspection data about the agent.
+        
+        The returned dictionary includes the current timestamp, total atom count, active goals, attention allocation summary, and high STI atoms retrieved from the AtomSpace.
         """
         data = {
             "timestamp": datetime.now().isoformat(),
@@ -331,6 +411,11 @@ class DiagnosticResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load the model on startup
+    """
+    Manages application startup and shutdown tasks, including loading and cleaning up the model.
+    
+    On startup, attempts to load the model using the configuration stored in the application's state. On shutdown, performs any necessary cleanup of model resources.
+    """
     try:
         app.state.model_config.load_model()
     except Exception as e:
@@ -363,7 +448,15 @@ app.add_middleware(
 
 # --- Dependency Injection ---
 def get_model_config(request: Request) -> ModelConfig:
-    """Dependency to get the model configuration."""
+    """
+    Retrieves the loaded model configuration from the FastAPI application state.
+    
+    Raises:
+        HTTPException: If the model is not loaded or initialization failed.
+    
+    Returns:
+        The loaded ModelConfig instance.
+    """
     if not hasattr(request.app.state, "model_config") or not request.app.state.model_config.model:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -372,7 +465,18 @@ def get_model_config(request: Request) -> ModelConfig:
     return request.app.state.model_config
 
 def get_atomspace_client(atomspace_endpoint: str) -> AtomSpaceClient:
-    """Dependency to get an AtomSpace client."""
+    """
+    Creates and returns an AtomSpaceClient for the specified endpoint, raising an HTTP 503 error if the connection fails.
+    
+    Args:
+        atomspace_endpoint: The URL of the AtomSpace REST API endpoint.
+    
+    Returns:
+        An initialized AtomSpaceClient connected to the specified endpoint.
+    
+    Raises:
+        HTTPException: If the AtomSpace endpoint is unreachable.
+    """
     client = AtomSpaceClient(atomspace_endpoint)
     if not client.test_connection():
         raise HTTPException(
@@ -384,7 +488,9 @@ def get_atomspace_client(atomspace_endpoint: str) -> AtomSpaceClient:
 # --- API Routes ---
 @app.get("/")
 async def root():
-    """Root endpoint with basic information."""
+    """
+    Returns basic information about the NanoCog API, including its name, description, status, and version.
+    """
     return {
         "name": "NanoCog API",
         "description": "API for interacting with a CogPrime-trained nanoGPT model",
@@ -394,7 +500,11 @@ async def root():
 
 @app.get("/status")
 async def status(request: Request):
-    """Status endpoint with model information."""
+    """
+    Returns the operational status of the server and model information.
+    
+    Provides details on whether the model is loaded, the model path, device, and the current timestamp.
+    """
     model_loaded = hasattr(request.app.state, "model_config") and request.app.state.model_config.model is not None
     
     return {
@@ -411,9 +521,9 @@ async def chat(
     model_config: ModelConfig = Depends(get_model_config)
 ):
     """
-    Generate a chat completion.
+    Generates a chat response based on the provided conversation history.
     
-    This endpoint takes a conversation history and generates a response.
+    Takes a sequence of chat messages, formats them into a prompt, and uses the loaded nanoGPT model to generate a response. Returns the generated text along with model metadata and token count.
     """
     try:
         # Format the prompt from the conversation history
@@ -450,9 +560,10 @@ async def chat_stream(
     model_config: ModelConfig = Depends(get_model_config)
 ):
     """
-    Stream a chat completion token by token.
+    Streams generated chat completion tokens in real time as server-sent events.
     
-    This endpoint takes a conversation history and streams the generated response.
+    Accepts a conversation history and streams each generated token as a JSON object,
+    allowing clients to receive the response incrementally as it is produced.
     """
     try:
         # Format the prompt from the conversation history
@@ -460,6 +571,11 @@ async def chat_stream(
         
         # Set stream to True to get a generator
         async def generate_stream():
+            """
+            Asynchronously streams generated tokens as JSON objects for a text generation request.
+            
+            Yields each generated token as a Server-Sent Event (SSE) in JSON format. If an error occurs during generation, yields an error message. Ends the stream with a "[DONE]" marker.
+            """
             try:
                 async for token in model_config.generate(
                     prompt=prompt,
@@ -494,9 +610,9 @@ async def run_diagnostics(
     model_config: ModelConfig = Depends(get_model_config)
 ):
     """
-    Run introspective diagnostics on a CogPrime agent.
+    Performs introspective diagnostics on a CogPrime agent using AtomSpace data and a language model.
     
-    This endpoint connects to an AtomSpace, gathers data, and generates an analysis.
+    Connects to the specified AtomSpace endpoint, retrieves agent introspection data, formats a diagnostic prompt, and generates an analysis with recommendations using the loaded nanoGPT model. Returns the analysis, raw introspection data, extracted recommendations, model name, and timestamp.
     """
     try:
         # Get AtomSpace client
@@ -543,9 +659,9 @@ async def diagnostics_stream(
     model_config: ModelConfig = Depends(get_model_config)
 ):
     """
-    Stream introspective diagnostics on a CogPrime agent.
+    Streams introspective diagnostics for a CogPrime agent as server-sent events.
     
-    This endpoint connects to an AtomSpace, gathers data, and streams the analysis.
+    Connects to an AtomSpace endpoint, gathers agent introspection data, formats a diagnostic prompt, and streams the generated analysis tokens along with metadata. The response is sent as a sequence of JSON-encoded events suitable for real-time consumption.
     """
     try:
         # Get AtomSpace client
@@ -560,6 +676,11 @@ async def diagnostics_stream(
         # Stream the diagnostic analysis
         async def generate_stream():
             # First yield the metadata
+            """
+            Asynchronously streams diagnostic metadata and generated analysis tokens as server-sent events.
+            
+            Yields the introspection metadata first, then streams each generated analysis token, and finally signals the end of the stream. If an error occurs during generation, yields an error message instead of tokens.
+            """
             yield f"data: {json.dumps({'type': 'metadata', 'raw_data': introspection_data})}\n\n"
             
             # Then stream the analysis
@@ -596,13 +717,9 @@ async def diagnostics_stream(
 # --- Utility Functions ---
 def format_chat_prompt(messages: List[ChatMessage]) -> str:
     """
-    Format a conversation history into a prompt for the model.
+    Converts a list of chat messages into a formatted prompt string for the model.
     
-    Args:
-        messages: List of ChatMessage objects
-        
-    Returns:
-        Formatted prompt string
+    Each message is prefixed according to its role ("User:", "NanoCog:", or "# System Instruction:") and the prompt ends with "NanoCog:" to signal the model to generate a response.
     """
     prompt = ""
     for message in messages:
@@ -620,14 +737,14 @@ def format_chat_prompt(messages: List[ChatMessage]) -> str:
 
 def format_diagnostic_prompt(introspection_data: Dict[str, Any], focus_areas: List[str]) -> str:
     """
-    Format introspection data into a prompt for diagnostic analysis.
+    Formats AtomSpace introspection data and focus areas into a structured prompt for diagnostic analysis.
     
     Args:
-        introspection_data: Dictionary of data from the AtomSpace
-        focus_areas: List of areas to focus the diagnostic on
-        
+        introspection_data: Dictionary containing AtomSpace agent data for introspection.
+        focus_areas: List of diagnostic focus areas to guide the analysis.
+    
     Returns:
-        Formatted prompt string
+        A formatted prompt string that summarizes key AtomSpace metrics, includes raw JSON data, and instructs the AI to provide a diagnostic analysis with recommendations.
     """
     # Create a summary of the data for the prompt
     summary = []
@@ -687,16 +804,15 @@ NanoCog (Diagnostic Analysis):
 
 def extract_recommendations(analysis: str) -> List[str]:
     """
-    Extract recommendations from the generated analysis.
+    Extracts actionable recommendations from a diagnostic analysis string.
     
-    This is a simple implementation that looks for numbered lists or bullet points.
-    A more sophisticated implementation could use regex or NLP techniques.
+    Scans the analysis for numbered lists, bullet points, or lines prefixed with "Recommendation:". If none are found, searches for sentences containing suggestive words to identify potential recommendations.
     
     Args:
-        analysis: The generated diagnostic analysis
-        
+        analysis: The generated diagnostic analysis text.
+    
     Returns:
-        List of extracted recommendations
+        A list of extracted recommendation strings.
     """
     recommendations = []
     
@@ -728,7 +844,9 @@ def extract_recommendations(analysis: str) -> List[str]:
 # --- Error Handling ---
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
-    """Handle HTTP exceptions."""
+    """
+    Handles HTTPException errors and returns a JSON response with the error detail and status code.
+    """
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.detail}
@@ -736,7 +854,9 @@ async def http_exception_handler(request, exc):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
-    """Handle general exceptions."""
+    """
+    Handles uncaught exceptions by logging the error and returning a generic HTTP 500 response.
+    """
     logger.error(f"Unhandled exception: {str(exc)}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -745,7 +865,11 @@ async def general_exception_handler(request, exc):
 
 # --- Main Function ---
 def main():
-    """Run the NanoCog server."""
+    """
+    Starts the NanoCog FastAPI server with command-line configuration.
+    
+    Parses command-line arguments for model checkpoint path, device, context size, host, and port. Initializes the model configuration, stores it in the application state, and launches the server using Uvicorn.
+    """
     parser = argparse.ArgumentParser(description="NanoCog Server")
     parser.add_argument("--model_path", type=str, required=True, 
                         help="Path to the model checkpoint")
