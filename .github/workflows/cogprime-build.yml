@@ -29,7 +29,7 @@ jobs:
       - id: cache
         run: echo "key=ccache-$(date +%Y-%W)" >> $GITHUB_OUTPUT
       
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.cache.outputs.key }}
@@ -44,7 +44,7 @@ jobs:
           make install
           ldconfig
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: foundation-artifacts
           path: /usr/local
@@ -61,7 +61,7 @@ jobs:
         env:
           POSTGRES_PASSWORD: test
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: foundation-artifacts
           path: /usr/local
@@ -80,7 +80,7 @@ jobs:
           make install
           ldconfig
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: core-artifacts
           path: /usr/local
@@ -99,7 +99,7 @@ jobs:
           - component: spacetime
           - component: unify
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: core-artifacts
           path: /usr/local
@@ -116,7 +116,7 @@ jobs:
           make install
           ldconfig
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.component }}-artifacts
           path: /usr/local
@@ -128,7 +128,7 @@ jobs:
     container:
       image: ${{ github.repository_owner }}/opencog-deps:latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: /artifacts
       
@@ -149,7 +149,7 @@ jobs:
           make install
           ldconfig
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: reasoning-artifacts
           path: /usr/local
@@ -170,7 +170,7 @@ jobs:
           - component: pln
           - component: lg-atomese
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: reasoning-artifacts
           path: /usr/local
@@ -196,7 +196,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: /artifacts
       
@@ -215,7 +215,7 @@ jobs:
           make test
           make package
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: cogprime-distribution
           path: build/*.deb
