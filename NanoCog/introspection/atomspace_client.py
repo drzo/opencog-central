@@ -16,6 +16,7 @@ Usage:
 import os
 import time
 import json
+import re
 import logging
 from typing import Dict, List, Any, Optional, Union, Tuple
 from datetime import datetime
@@ -1031,6 +1032,291 @@ class AtomSpaceClient:
                 "schematic_success_rate": success_rate,
                 "atom_type_diversity": len(atom_distribution["type_counts"])
             }
+        }
+
+    # --- Enhanced Evaluation Metrics ---
+    
+    def evaluate_symbolic_accuracy(self, generated_text: str) -> Dict[str, Any]:
+        """
+        Evaluate the symbolic accuracy of generated Atomese/Scheme code.
+        
+        Args:
+            generated_text: Generated text containing Atomese/Scheme code
+            
+        Returns:
+            Dictionary containing accuracy metrics
+        """
+        import re
+        
+        # Extract Atomese patterns from generated text
+        atomese_patterns = re.findall(r'\([A-Za-z][A-Za-z0-9]*Link[^)]*\)', generated_text, re.MULTILINE | re.DOTALL)
+        scheme_definitions = re.findall(r'\(define[^)]*\)', generated_text, re.MULTILINE | re.DOTALL)
+        
+        total_constructs = len(atomese_patterns) + len(scheme_definitions)
+        
+        if total_constructs == 0:
+            return {
+                "total_constructs": 0,
+                "syntax_correct": 0,
+                "syntax_accuracy": 0.0,
+                "semantic_coherent": 0,
+                "semantic_accuracy": 0.0,
+                "patterns_found": []
+            }
+        
+        # Basic syntax validation (simplified)
+        syntax_correct = 0
+        semantic_coherent = 0
+        
+        valid_atom_types = {
+            'ConceptNode', 'PredicateNode', 'SchemaNode', 'VariableNode', 'NumberNode',
+            'ListLink', 'InheritanceLink', 'EvaluationLink', 'ImplicationLink', 
+            'AndLink', 'OrLink', 'SequentialLink', 'ExecutionLink', 'BindLink',
+            'SatisfactionLink', 'GoalNode', 'StateLink', 'AtTimeLink'
+        }
+        
+        for pattern in atomese_patterns:
+            # Check for balanced parentheses
+            if pattern.count('(') == pattern.count(')'):
+                syntax_correct += 1
+                
+                # Check for valid atom types
+                for atom_type in valid_atom_types:
+                    if atom_type in pattern:
+                        semantic_coherent += 1
+                        break
+        
+        for definition in scheme_definitions:
+            if definition.count('(') == definition.count(')'):
+                syntax_correct += 1
+                semantic_coherent += 1  # Assume definitions are semantically coherent if syntactically correct
+        
+        return {
+            "total_constructs": total_constructs,
+            "syntax_correct": syntax_correct,
+            "syntax_accuracy": syntax_correct / total_constructs if total_constructs > 0 else 0.0,
+            "semantic_coherent": semantic_coherent,
+            "semantic_accuracy": semantic_coherent / total_constructs if total_constructs > 0 else 0.0,
+            "patterns_found": atomese_patterns[:5]  # Sample of found patterns
+        }
+    
+    def evaluate_diagnostic_alignment(self, model_predictions: Dict[str, Any], 
+                                    actual_state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Evaluate alignment between model diagnostic predictions and actual AtomSpace state.
+        
+        Args:
+            model_predictions: Model's diagnostic predictions
+            actual_state: Actual AtomSpace cognitive state
+            
+        Returns:
+            Dictionary containing alignment metrics
+        """
+        alignment_score = 0.0
+        total_comparisons = 0
+        detailed_results = {}
+        
+        # Compare bottleneck predictions
+        if 'predicted_bottlenecks' in model_predictions and 'bottlenecks' in actual_state:
+            predicted_types = {b.get('type', '') for b in model_predictions['predicted_bottlenecks']}
+            actual_types = {b.get('type', '') for b in actual_state['bottlenecks']}
+            
+            correct_predictions = len(predicted_types.intersection(actual_types))
+            total_predictions = max(len(predicted_types), len(actual_types))
+            
+            if total_predictions > 0:
+                bottleneck_accuracy = correct_predictions / total_predictions
+                alignment_score += bottleneck_accuracy
+                total_comparisons += 1
+                
+                detailed_results['bottleneck_detection'] = {
+                    'accuracy': bottleneck_accuracy,
+                    'predicted': list(predicted_types),
+                    'actual': list(actual_types),
+                    'correct': list(predicted_types.intersection(actual_types))
+                }
+        
+        # Compare attention pattern recognition
+        if 'attention_analysis' in model_predictions and 'attention_distribution' in actual_state:
+            pred_attention = model_predictions['attention_analysis']
+            actual_attention = actual_state['attention_distribution']
+            
+            # Compare high STI count predictions
+            if 'high_sti_prediction' in pred_attention and 'high_sti_count' in actual_attention:
+                pred_high_sti = pred_attention['high_sti_prediction']
+                actual_high_sti = actual_attention['high_sti_count']
+                
+                # Calculate relative accuracy (within 20% tolerance)
+                if actual_high_sti > 0:
+                    relative_error = abs(pred_high_sti - actual_high_sti) / actual_high_sti
+                    attention_accuracy = max(0, 1 - relative_error / 0.2)  # 20% tolerance
+                    alignment_score += attention_accuracy
+                    total_comparisons += 1
+                    
+                    detailed_results['attention_pattern_recognition'] = {
+                        'accuracy': attention_accuracy,
+                        'predicted_high_sti': pred_high_sti,
+                        'actual_high_sti': actual_high_sti,
+                        'relative_error': relative_error
+                    }
+        
+        # Overall alignment score
+        overall_accuracy = alignment_score / total_comparisons if total_comparisons > 0 else 0.0
+        
+        return {
+            "overall_accuracy": overall_accuracy,
+            "total_comparisons": total_comparisons,
+            "detailed_results": detailed_results,
+            "alignment_score": alignment_score
+        }
+    
+    def detect_emergent_patterns(self, generated_samples: List[str], 
+                               training_corpus: List[str]) -> Dict[str, Any]:
+        """
+        Detect emergent patterns in generated samples that are novel compared to training corpus.
+        
+        Args:
+            generated_samples: List of generated text samples
+            training_corpus: List of training corpus samples for comparison
+            
+        Returns:
+            Dictionary containing emergent pattern analysis
+        """
+        import re
+        from collections import Counter
+        
+        # Extract cognitive patterns from generated samples
+        generated_patterns = []
+        for sample in generated_samples:
+            # Extract cognitive schematics (ImplicationLink patterns)
+            implications = re.findall(r'\(ImplicationLink[^)]*\)', sample, re.MULTILINE | re.DOTALL)
+            generated_patterns.extend(implications)
+            
+            # Extract attention patterns
+            attention_patterns = re.findall(r'\(set-[st]ti![^)]*\)', sample)
+            generated_patterns.extend(attention_patterns)
+            
+            # Extract goal patterns
+            goal_patterns = re.findall(r'\(GoalNode[^)]*\)', sample)
+            generated_patterns.extend(goal_patterns)
+        
+        # Extract patterns from training corpus for comparison
+        corpus_patterns = []
+        for sample in training_corpus[:100]:  # Sample to avoid performance issues
+            implications = re.findall(r'\(ImplicationLink[^)]*\)', sample, re.MULTILINE | re.DOTALL)
+            corpus_patterns.extend(implications)
+            
+            attention_patterns = re.findall(r'\(set-[st]ti![^)]*\)', sample)
+            corpus_patterns.extend(attention_patterns)
+            
+            goal_patterns = re.findall(r'\(GoalNode[^)]*\)', sample)
+            corpus_patterns.extend(goal_patterns)
+        
+        # Normalize patterns for comparison (remove specific values, keep structure)
+        def normalize_pattern(pattern):
+            # Replace specific values with placeholders
+            normalized = re.sub(r'"[^"]*"', '"PLACEHOLDER"', pattern)
+            normalized = re.sub(r'\d+\.?\d*', 'NUM', normalized)
+            return normalized
+        
+        generated_normalized = [normalize_pattern(p) for p in generated_patterns]
+        corpus_normalized = [normalize_pattern(p) for p in corpus_patterns]
+        
+        # Find novel patterns (appear in generated but not in corpus)
+        generated_counter = Counter(generated_normalized)
+        corpus_counter = Counter(corpus_normalized)
+        
+        novel_patterns = []
+        for pattern, count in generated_counter.items():
+            if pattern not in corpus_counter:
+                novel_patterns.append((pattern, count))
+        
+        # Calculate novelty metrics
+        total_generated = len(generated_patterns)
+        novel_count = sum(count for _, count in novel_patterns)
+        novelty_rate = novel_count / total_generated if total_generated > 0 else 0.0
+        
+        # Identify most frequent novel patterns
+        novel_patterns.sort(key=lambda x: x[1], reverse=True)
+        top_novel = novel_patterns[:10]
+        
+        return {
+            "total_generated_patterns": total_generated,
+            "novel_pattern_count": novel_count,
+            "novelty_rate": novelty_rate,
+            "pattern_diversity": len(set(generated_normalized)),
+            "top_novel_patterns": [{"pattern": p, "frequency": f} for p, f in top_novel],
+            "emergent_creativity_score": min(1.0, novelty_rate * 2)  # Scale to 0-1
+        }
+    
+    def analyze_cross_domain_integration(self, generated_text: str) -> Dict[str, Any]:
+        """
+        Analyze the model's ability to integrate concepts from different cognitive domains.
+        
+        Args:
+            generated_text: Generated text to analyze
+            
+        Returns:
+            Dictionary containing cross-domain integration metrics
+        """
+        # Define cognitive domain keywords
+        cognitive_domains = {
+            'attention': ['sti', 'lti', 'attention', 'focus', 'ecan', 'stimulate'],
+            'reasoning': ['pln', 'inference', 'implication', 'deduction', 'logic', 'conclusion'],
+            'learning': ['moses', 'evolve', 'fitness', 'genetic', 'program', 'adapt'],
+            'memory': ['storage', 'retrieve', 'recall', 'consolidate', 'episodic', 'semantic'],
+            'goals': ['goal', 'objective', 'target', 'achieve', 'satisfy', 'pursuit'],
+            'patterns': ['pattern', 'frequent', 'mining', 'association', 'cluster', 'correlation']
+        }
+        
+        # Count domain keywords in generated text
+        domain_counts = {}
+        text_lower = generated_text.lower()
+        
+        for domain, keywords in cognitive_domains.items():
+            count = sum(text_lower.count(keyword) for keyword in keywords)
+            domain_counts[domain] = count
+        
+        # Calculate integration metrics
+        active_domains = sum(1 for count in domain_counts.values() if count > 0)
+        total_domain_mentions = sum(domain_counts.values())
+        
+        # Look for explicit integration patterns (mentions of multiple domains together)
+        integration_patterns = []
+        
+        # Check for sentences that mention multiple domains
+        sentences = re.split(r'[.!?]', generated_text)
+        multi_domain_sentences = 0
+        
+        for sentence in sentences:
+            sentence_lower = sentence.lower()
+            domains_in_sentence = []
+            
+            for domain, keywords in cognitive_domains.items():
+                if any(keyword in sentence_lower for keyword in keywords):
+                    domains_in_sentence.append(domain)
+            
+            if len(domains_in_sentence) >= 2:
+                multi_domain_sentences += 1
+                integration_patterns.append({
+                    "sentence": sentence.strip()[:100] + "..." if len(sentence) > 100 else sentence.strip(),
+                    "domains": domains_in_sentence
+                })
+        
+        # Calculate integration score
+        integration_score = 0.0
+        if len(sentences) > 0:
+            integration_score = multi_domain_sentences / len(sentences)
+        
+        return {
+            "active_domains": active_domains,
+            "total_domains": len(cognitive_domains),
+            "domain_coverage": active_domains / len(cognitive_domains),
+            "domain_counts": domain_counts,
+            "multi_domain_sentences": multi_domain_sentences,
+            "integration_score": integration_score,
+            "integration_examples": integration_patterns[:5],
+            "cross_domain_synergy_rating": min(1.0, integration_score * 3)  # Scale to 0-1
         }
 
 # --- Command-line interface for testing ---
