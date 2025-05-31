@@ -107,10 +107,12 @@ Each model contributes specific atom types and link patterns:
 - **Intentional**: GoalNodes, ImplicationLinks for schematics
 
 ## Cross-References
-- 📊 [CogPrime Architecture Diagram](docs/COGPRIME_ARCHITECTURE_DIAGRAM.md)
-- 📖 [Main README](README.md)
-- 🎯 [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
-- 🔄 [Contributing Guidelines](CONTRIBUTING.md)
+- 📊 [CogPrime Architecture Diagram](docs/COGPRIME_ARCHITECTURE_DIAGRAM.md) - Main system architecture and Eva integration
+- 📖 [Main README](README.md) - Repository overview with cross-linked cognitive components  
+- 🎯 [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md) - Technical implementation details
+- 🔄 [Contributing Guidelines](CONTRIBUTING.md) - @models documentation and @mermaid-chart standards
+- 📁 [Scheme Models](Scheme/) - Source code with @models docblocks
+- 📊 [Eva Self-Model Diagram](docs/COGPRIME_ARCHITECTURE_DIAGRAM.md#eva-self-model-integration) - Specialized embodiment integration
 
 ---
 
