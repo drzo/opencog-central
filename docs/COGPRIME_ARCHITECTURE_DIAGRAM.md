@@ -81,6 +81,72 @@ graph TD
     linkStyle default interpolate basis
 ```
 
+## Eva Self-Model Integration
+
+This specialized diagram shows how the Eva Physical Self-Model integrates with the core CogPrime architecture:
+
+```mermaid
+graph TD
+    subgraph EvaEmbodiment["Eva Robot Embodiment"]
+        EvaPerception["Eva Sensors<br>(Cameras, Microphones)"]
+        EvaAction["Eva Actuators<br>(Face, Voice, Movement)"]
+    end
+
+    subgraph EvaSelfModel["Eva Physical Self-Model"]
+        direction TB
+        FaceTracking["Face Tracking State<br>AnchorNode: Face Tracking State"]
+        RoomState["Room State<br>ConceptNode: room empty/nonempty"]
+        DemoModes["Demo Modes<br>default/reasoning/philosophy/saliency"]
+        SelfQueries["Self-Awareness Queries<br>DefinedPredicates"]
+        ActionOrchestration["Action Orchestration<br>Conflict Prevention"]
+    end
+
+    AtomSpaceEva["AtomSpace<br/><i>Eva's Cognitive State</i><br/>- StateLinks (face tracking)<br/>- DefinedPredicates (self-queries)<br/>- AnchorNodes (room state)<br/>- Rule weights & attention"]
+
+    subgraph EvaCognitiveProcesses["Eva-Aware Cognitive Processes"]
+        PLNEva["PLN<br>Self-State Reasoning"]
+        MOSESEva["MOSES<br>Behavioral Learning"]
+        ECANEva["ECAN<br>Attention on Self-State"]
+        GoalSystemEva["Goal System<br>Self-Awareness Goals"]
+    end
+
+    %% Eva-specific flows
+    EvaPerception -- "Face Detection Events" --> FaceTracking
+    FaceTracking -- "StateLinks" --> AtomSpaceEva
+    RoomState -- "Room Status" --> AtomSpaceEva
+    DemoModes -- "Mode Control" --> AtomSpaceEva
+    
+    %% Self-awareness integration
+    SelfQueries <--> AtomSpaceEva
+    ActionOrchestration <--> AtomSpaceEva
+    
+    %% Cognitive process integration
+    PLNEva <--> AtomSpaceEva
+    MOSESEva <--> AtomSpaceEva 
+    ECANEva <--> AtomSpaceEva
+    GoalSystemEva <--> AtomSpaceEva
+    
+    %% Action orchestration
+    ActionOrchestration -- "Coordinated Commands" --> EvaAction
+    EvaAction -. "Feedback" .-> EvaPerception
+
+    %% Self-awareness queries
+    SelfQueries -- "What am I doing?" --> ActionOrchestration
+    SelfQueries -- "Am I happy?" --> DemoModes
+
+    %% Styling for Eva components
+    classDef eva fill:#FFE6CC,stroke:#FF8C00,stroke-width:2px,color:black;
+    classDef evaModel fill:#E6F3FF,stroke:#4169E1,stroke-width:2px,color:black;
+    
+    class EvaPerception,EvaAction eva;
+    class FaceTracking,RoomState,DemoModes,SelfQueries,ActionOrchestration evaModel;
+    class AtomSpaceEva atomspace;
+    class PLNEva,MOSESEva,ECANEva,GoalSystemEva process;
+```
+
+linkStyle default interpolate basis
+```
+
 **Diagram Legend and Notes:**
 
 *   **AtomSpace (Central Hub):** The core knowledge repository where all information (declarative, procedural, episodic, attentional, goals) is stored as a weighted, labeled hypergraph. It supports Glocal Memory. TruthValues (TVs) are associated with declarative knowledge, and AttentionValues (AVs) with attentional status.

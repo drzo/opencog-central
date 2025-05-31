@@ -1,6 +1,18 @@
 ;
 ; self-model.scm
 ;
+; @models:
+;   name: "EvaPhysicalSelfModel"
+;   type: "Embodied Self-Awareness System"
+;   architecture: "CogPrime"
+;   hypergraph_encoding: "AtomSpace"
+;   cognitive_processes: ["ActionOrchestration", "SelfAwareness", "FaceTracking", "MovementCoordination"]
+;   atom_types: ["StateLink", "ConceptNode", "PredicateNode", "DefinedPredicate", "AnchorNode"]
+;   attention_integration: true
+;   dependencies: ["opencog-eva-model", "faces.scm"]
+;   status: "active"
+;   diagram_ref: "docs/COGPRIME_ARCHITECTURE_DIAGRAM.md#eva-self-model-integration"
+;
 ; Model of Eva's current physical state, represented in the Atomspace.
 ;
 ; This attempts to maintain a model, in the atomspace, of what the robot
@@ -15,6 +27,17 @@
 ; -- It is needed for self-awareness, so that the chatbot can respond to
 ;    questions about what Eva is doing.
 ;
+; HYPERGRAPH STRUCTURE:
+; This model contributes the following atom patterns to the cognitive hypergraph:
+; - StateLinks: (State face-tracking-state face-tracking-on/off)
+; - DefinedPredicates: "chatbot is talking?", "chatbot is listening?", "chatbot is happy"
+; - AnchorNodes: Room State, Face Tracking State, Eye Contact State
+; - Procedural schemas: demo mode switching, rule weight management
+;
+; COGNITIVE SYNERGY:
+; Integrates with ECAN (attention), PLN (reasoning about self-state), 
+; MOSES (learning behavioral procedures), and Goal System (self-awareness goals).
+;
 ; Example usage:
 ;; Load the needed modules.
 ; (use-modules (opencog) (opencog exec))
@@ -25,6 +48,7 @@
 ;; start roscore first, then the movement bridge:
 ; (start-ros-movement-node)
 ;
+; See Mermaid chart: docs/COGPRIME_ARCHITECTURE_DIAGRAM.md#eva-self-model-integration
 ; Examples and debugging hints:
 ; Some (but not all) state queries:
 ; (cog-evaluate! (DefinedPredicate "chatbot is talking?"))
