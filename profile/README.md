@@ -1,3 +1,13 @@
+## CogPrime Architecture and OpenCog Central Documentation
+
+This profile provides an overview of the OpenCog project landscape. For a detailed understanding of the **CogPrime AGI architecture** (as described in "[CogPrime: An Integrative Architecture for Embodied Artificial General Intelligence](https://github.com/drzo/cogprime/blob/main/CogPrime%20-%20An%20Integrative%20Architecture%20for%20Embodied%20Artificial%20General%20Intelligence.md)") and its relationship with the OpenCog ecosystem, please refer to the main documentation hub within this `opencog-central` repository:
+
+➡️ **[Main OpenCog Central README & CogPrime Documentation](../README.md)**
+
+The main repository now contains comprehensive guides, architectural diagrams, and status updates on CogPrime components in relation to the broader OpenCog project.
+
+---
+
 ## The OpenCog Project 👋
 [OpenCog aims to create AGI](https://wiki.opencog.org/w/The_Open_Cognition_Project)
 with a combination of exploration, engineering and basic science research.
@@ -21,20 +31,20 @@ The core of the system. As of 2024, it is active, stable and supported.
 
 ### OpenCog Research
 Git repos in which active resarch is being carried out:
-* [Learn](https://github.com/opencog/learn) - Symbolic learning ("mature", batch-based processing.)
+* [Learn](https://github.com/opencog/learn) - Symbolic learning (\"mature\", batch-based processing.)
 * [Agents](https://github.com/opencog/agents) - Refactoring learning for an interactive environment.
 * [Sensory](https://github.com/opencog/sensory) - Dataflow of graphlets to/from external world. Agents I/O system.
 
 ### OpenCog Fossils
 Older, abandoned and obsolete components. These were educational and fun, but development has
 halted. These projects are no longer maintained, but they do contain useful subsystems that
-might be salvageable for future use. This includes:
+might be salvageable for future use. (The architectural roles and evolution of these concepts within the CogPrime vision are discussed in the [main OpenCog Central documentation](../README.md#current-status--future-vision) and its linked `docs/COGPRIME_STATUS_2024.md` file). This includes:
 * PLN, URE, Attention, Ghost, Relex, R2L, ROS, Hanson Robotics Eva/Sophia
 * MOSES (but not as-moses, see below).
-* Any repo that is marked "read-only" or "obsolete".
+* Any repo that is marked \"read-only\" or \"obsolete\".
 
 ### OpenCog Hyperon
-Being developed by [Singularity.net](https://singularitynet.io).
+Being developed by [Singularity.net](https://singularitynet.io). (Its evolution from and relation to the CogPrime architecture is explored in the [main OpenCog Central documentation](../README.md#current-status--future-vision) and its linked `docs/COGPRIME_STATUS_2024.md` file).
 
 ### OpenCog Incubator
 These are the immature, incomplete, promising projects that haven't taken off yet.
