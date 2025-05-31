@@ -86,6 +86,12 @@ CogPrime specifies several key memory types and associated cognitive processes:
 
 ## Getting Started & Contributing
 
+📚 **[Central Models Catalog](MODELS.md)** – Complete catalog of cognitive models with @models annotations and hypergraph structures.
+
+🎯 **[Contributing Guidelines](CONTRIBUTING.md)** – Recursive documentation patterns and @mermaid-chart integration standards.
+
+🔗 **Navigation**: [@models/EvaPhysicalSelfModel](MODELS.md#evaphysicalselfmodel) ↔️ [@mermaid-chart](docs/COGPRIME_ARCHITECTURE_DIAGRAM.md#eva-self-model-integration)
+
 1. **Study the CogPrime paper** in `docs/`.
 2. **Explore the OpenCog Wiki**: <https://wiki.opencog.org>.
 3. **Review key repos**: `atomspace`, `learn`, `agents`, `link-grammar`.
