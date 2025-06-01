@@ -1,6 +1,6 @@
 name: Train NanoCog Model (Local Adaptation)
 
-on:
+"on":
   push:
     branches: [ main, master ]
     paths:
@@ -126,13 +126,15 @@ jobs:
     - name: Setup NanoCog training config
       id: config
       run: |
-        # Copy the existing NanoCog config to nanoGPT
+        # Copy the existing NanoCog config to nanoGPT for reference
         cp opencog-central/NanoCog/config/train_cogprime.py nanoGPT/config/
         
-        # For CI mode, create a simplified config that overrides the complex one
+        # For CI mode, create a simplified config
         if [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ github.event.inputs.training_type }}" == "ci" ]]; then
           cat > nanoGPT/config/train_cogprime_ci.py << EOL
         # NanoCog CI training configuration - simplified for fast CI runs
+        # Based on opencog-central/NanoCog/config/train_cogprime.py but adapted for CI
+        
         out_dir = '${{ steps.params.outputs.output_dir }}'
         eval_interval = 5
         eval_iters = 2
@@ -169,24 +171,41 @@ jobs:
         device = 'cpu'  # Use CPU for GitHub Actions
         dtype = 'float32'
         compile = False
+        
+        # Always save checkpoints
+        always_save_checkpoint = True
         EOL
           echo "config_file=config/train_cogprime_ci.py" >> $GITHUB_OUTPUT
         else
-          # For full training, modify the original config with custom parameters
+          # For full training, create a config based on NanoCog's train_cogprime.py
           cat > nanoGPT/config/train_cogprime_full.py << EOL
-        # Import and modify the original NanoCog config
-        from train_cogprime import *
+        # NanoCog full training configuration 
+        # Based on opencog-central/NanoCog/config/train_cogprime.py with workflow overrides
 
-        # Override with workflow parameters
+        # Model architecture (from NanoCog config but configurable)
         n_layer = ${{ steps.params.outputs.n_layer }}
         n_head = ${{ steps.params.outputs.n_head }}
         n_embd = ${{ steps.params.outputs.n_embd }}
-        max_iters = ${{ steps.params.outputs.max_iters }}
-        batch_size = ${{ steps.params.outputs.batch_size }}
-        learning_rate = ${{ steps.params.outputs.learning_rate }}
-        out_dir = '${{ steps.params.outputs.output_dir }}'
+        dropout = 0.1
+        bias = True
+        block_size = 1024
 
-        # Add missing nanoGPT standard parameters
+        # Training Configuration (from workflow inputs)
+        batch_size = ${{ steps.params.outputs.batch_size }}
+        gradient_accumulation_steps = 4
+        learning_rate = ${{ steps.params.outputs.learning_rate }}
+        max_iters = ${{ steps.params.outputs.max_iters }}
+        warmup_iters = 2000
+        lr_decay_iters = ${{ steps.params.outputs.max_iters }}
+        min_lr = 3e-5
+
+        # Evaluation and logging (from NanoCog config)
+        eval_interval = 500
+        eval_iters = 100
+        log_interval = 100
+        always_save_checkpoint = True
+
+        # Standard nanoGPT parameters
         dataset = 'cogprime'
         decay_lr = True
         weight_decay = 1e-1
@@ -198,6 +217,9 @@ jobs:
         device = 'cpu'
         dtype = 'float32'
         compile = False
+        
+        # Output directory
+        out_dir = '${{ steps.params.outputs.output_dir }}'
         EOL
           echo "config_file=config/train_cogprime_full.py" >> $GITHUB_OUTPUT
         fi
