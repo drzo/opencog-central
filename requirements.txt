@@ -1,1 +1,8 @@
-Error: No file in /home/runner/work/opencog-central/opencog-central matched to [**/requirements.txt or **/pyproject.toml], make sure you have checked out the target repository
+# requirements.txt -- Central node for distributed cognitive processes
+
+numpy==1.26.3         # Tensor algebra backbone for neural-symbolic matrices
+scipy==1.13.0         # Symbolic reasoning in cognitive hypergraphs
+networkx==3.3         # Hypergraph encoding for distributed cognition
+pytest==8.2.2         # Recursive validation of emergent implementation patterns
+
+# Add further dependencies as your cognitive architecture evolves
