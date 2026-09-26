@@ -1,0 +1,42 @@
+tasks:
+  explorer-install:
+    name: Install dependencies
+    command: |
+      set -eu
+      cd atomspace-explorer
+      # Skip Semantic UI's interactive scaffolder; only node-sass needs a native binding.
+      npm ci --ignore-scripts --no-audit --no-fund
+      npm rebuild node-sass
+      touch node_modules/.ona-installed
+    triggeredBy:
+      - manual
+      - postDevcontainerStart
+      - prebuild
+
+  explorer-build:
+    name: Build AtomSpace Explorer
+    command: |
+      set -eu
+      cd atomspace-explorer
+      npm run ng -- build
+    dependsOn:
+      - explorer-install
+    triggeredBy:
+      - manual
+
+services:
+  explorer:
+    name: AtomSpace Explorer
+    commands:
+      start: |
+        set -eu
+        ona environment port open 4200 --admission creator_only --name "AtomSpace Explorer"
+        export ONA_EXPOSED_HOST="$(ona environment port get 4200 -f URL | cut -c 9-)"
+        cd atomspace-explorer
+        until test -f node_modules/.ona-installed; do sleep 2; done
+        exec npm start -- --host 0.0.0.0 --port 4200 --public-host "https://${ONA_EXPOSED_HOST}"
+      ready: |
+        curl -fsS http://localhost:4200/ >/dev/null
+    triggeredBy:
+      - manual
+      - postEnvironmentStart

@@ -1,36 +1,9 @@
 {
-  "name": "OpenCog",
+  "name": "AtomSpace Explorer",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
-    "ghcr.io/devcontainers/features/python": {},
-    "ghcr.io/devcontainers/features/node": {}
-  },
-  "forwardPorts": [17001, 18001, 5000, 8080],
-  "portsAttributes": {
-    "17001": {
-      "label": "CogServer Telnet",
-      "onAutoForward": "ignore"
-    },
-    "18001": {
-      "label": "CogServer Web",
-      "onAutoForward": "ignore"
-    },
-    "5000": {
-      "label": "REST API",
-      "onAutoForward": "ignore"
-    },
-    "8080": {
-      "label": "Web Demos",
-      "onAutoForward": "notify"
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode.cpptools",
-        "ms-vscode.cmake-tools",
-        "ms-python.python"
-      ]
+    "ghcr.io/devcontainers/features/node": {
+      "version": "14.21.3"
     }
   }
 }
